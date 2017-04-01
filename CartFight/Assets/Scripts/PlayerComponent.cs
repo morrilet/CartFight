@@ -11,9 +11,16 @@ public class PlayerComponent : MonoBehaviour
 	//Collider2D coll; //The collider attached to this game object.
 
 	public delegate void OnHitAction (Collision2D collision);
+
 	public event OnHitAction OnHitCart; //An event for when we hit a cart.
 	public event OnHitAction OnHitDriver; //An event for when we hit a driver.
 	public event OnHitAction OnHitObstacle; //An event for when we hit an obstacle.
+
+	public event OnHitAction OnHitCart_Stay;
+	public event OnHitAction OnHitDriver_Stay;
+	public event OnHitAction OnHitObstacle_Stay;
+
+	public event OnHitAction OnHitItem;
 
 	void Start () 
 	{
@@ -27,6 +34,7 @@ public class PlayerComponent : MonoBehaviour
 		{
 			if (OnHitCart != null) 
 			{
+				//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
 				OnHitCart(other);
 			}
 		}
@@ -34,6 +42,7 @@ public class PlayerComponent : MonoBehaviour
 		{
 			if (OnHitDriver != null) 
 			{
+				//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
 				OnHitDriver(other);
 			}
 		}
@@ -41,7 +50,16 @@ public class PlayerComponent : MonoBehaviour
 		{
 			if (OnHitObstacle != null) 
 			{
+				//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
 				OnHitObstacle(other);
+			}
+		}
+		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer ("Item")) 
+		{
+			if (OnHitItem != null) 
+			{
+				//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
+				OnHitItem (other);
 			}
 		}
 	}
@@ -51,23 +69,23 @@ public class PlayerComponent : MonoBehaviour
 		//Bit shift operator.
 		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer("Cart")) 
 		{
-			if (OnHitCart != null) 
+			if (OnHitCart_Stay != null) 
 			{
-				OnHitCart(other);
+				OnHitCart_Stay(other);
 			}
 		}
 		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer("Driver")) 
 		{
-			if (OnHitDriver != null) 
+			if (OnHitDriver_Stay != null) 
 			{
-				OnHitDriver(other);
+				OnHitDriver_Stay(other);
 			}
 		}
 		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer("Obstacle")) 
 		{
-			if (OnHitObstacle != null) 
+			if (OnHitObstacle_Stay != null) 
 			{
-				OnHitObstacle(other);
+				OnHitObstacle_Stay(other);
 			}
 		}
 	}
