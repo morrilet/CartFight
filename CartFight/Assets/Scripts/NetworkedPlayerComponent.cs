@@ -1,11 +1,12 @@
 ﻿using UnityEngine;
+using UnityEngine.Networking;
 using System.Collections;
 
 /// <summary>
 /// This class will be attached to the driver and cart parts of the player. It calls events that the
 /// player is subscribed to when it is hit by something on the appropriate layer.
 /// </summary>
-public class PlayerComponent :  MonoBehaviour
+public class NetworkedPlayerComponent :  NetworkBehaviour
 {
 	//public LayerMask layerMask; //The objects that can hit us.
 	//Collider2D coll; //The collider attached to this game object.
