@@ -1,0 +1,3 @@
+C:\Users\Ethan\Documents\GitHub\CartFight\CartFight\obj\Debug\Assembly-CSharp.csprojResolveAssemblyReference.cache
+C:\Users\Ethan\Documents\GitHub\CartFight\CartFight\obj\Debug\Assembly-CSharp.dll
+C:\Users\Ethan\Documents\GitHub\CartFight\CartFight\obj\Debug\Assembly-CSharp.pdb

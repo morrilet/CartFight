@@ -7,9 +7,12 @@ using UnityEngine.SceneManagement;
 
 public class Player : MonoBehaviour 
 {
+	[HideInInspector]
+	public ControlScheme controlScheme; //The control scheme to use for movement.
+
 	public enum PlayerNumber
 	{
-		P1, P2
+		P1, P2, P3, P4, None
 	};
 	public PlayerNumber playerNumber;
 
@@ -42,6 +45,8 @@ public class Player : MonoBehaviour
 
 	public void Start()
 	{
+		controlScheme.Start ();
+
 		velocity = Vector2.zero;
 		carriedItems = new List<Item> ();
 
@@ -74,32 +79,15 @@ public class Player : MonoBehaviour
 		driverLocalPosition = driverObj.transform.localPosition;
 		cartLocalPosition = cartObj.transform.localPosition;
 
-		cart.OnHitCart += HitCart;
-		cart.OnHitObstacle += HitObstacle;
-		cart.OnHitDriver += HitDriver;
-
-		//Driver handles everything as an obstacle collision.
-		driver.OnHitObstacle += HitObstacle;
-		driver.OnHitDriver += HitObstacle;
-		driver.OnHitCart += HitObstacle;
-
-		driver.OnHitObstacle_Stay += HitObstacle_Stay;
-		driver.OnHitDriver_Stay += HitDriver_Stay;
-		driver.OnHitCart_Stay += HitCart_Stay;
-
-		cart.OnHitObstacle_Stay += HitObstacle_Stay;
-		cart.OnHitDriver_Stay += HitDriver_Stay;
-		cart.OnHitCart_Stay += HitCart_Stay;
-
-		cart.OnHitItem += HitItem;
-		driver.OnHitItem += HitItem;
-		//cart.OnHitCart_Exit += HitObstacle_Exit;
+		HookUpEvents ();
 	}
 
 	public void Update()
 	{
 		if (isAlive) 
 		{
+			controlScheme.Update ();
+
 			Move ();
 
 			//Continually place driver and cart at their starting local positions.
@@ -113,22 +101,7 @@ public class Player : MonoBehaviour
 		isAlive = false;
 
 		//Unhook the player from the player components... Eventually make an init and unhook method for these...
-		cart.OnHitObstacle -= HitObstacle;
-		cart.OnHitDriver -= HitDriver;
-		cart.OnHitCart -= HitObstacle;
-		cart.OnHitObstacle_Stay -= HitObstacle_Stay;
-		cart.OnHitDriver_Stay -= HitDriver_Stay;
-		cart.OnHitCart_Stay -= HitCart_Stay;
-
-		driver.OnHitObstacle -= HitObstacle;
-		driver.OnHitDriver -= HitObstacle;
-		driver.OnHitCart -= HitObstacle;
-		driver.OnHitObstacle_Stay -= HitObstacle_Stay;
-		driver.OnHitDriver_Stay -= HitDriver_Stay;
-		driver.OnHitCart_Stay -= HitCart_Stay;
-
-		driver.OnHitItem -= HitItem;
-		cart.OnHitItem -= HitItem;
+		UnhookEvents();
 
 		//Remove all collected objects.
 		Debug.Log(carriedItems.Count);
@@ -139,7 +112,7 @@ public class Player : MonoBehaviour
 		}
 		carriedItems.RemoveRange (0, carriedItems.Count);
 
-		GameManager.instance.SpawnPlayer (playerNumber, 5f);
+		GameManager.instance.SpawnPlayer (playerNumber, controlScheme, 5f);
 		Destroy (driverObj);
 		Destroy (this.gameObject, 3f);
 	}
@@ -294,8 +267,8 @@ public class Player : MonoBehaviour
 
 	public void Move()
 	{
-		Vector2 input = new Vector2 (Input.GetAxisRaw (playerNumber.ToString() + "_Horizontal"), 
-			Input.GetAxisRaw (playerNumber.ToString() + "_Vertical"));
+		//Pull the input from our desired control scheme.
+		Vector2 input = new Vector2 (controlScheme.Horizontal, controlScheme.Vertical);
 
 		//Turning
 		if (input.x != 0) 
@@ -369,5 +342,50 @@ public class Player : MonoBehaviour
 		output.x = inputVector.x * Mathf.Cos (degrees) - inputVector.y * Mathf.Sin (degrees);
 		output.y = inputVector.x * Mathf.Sin (degrees) + inputVector.y * Mathf.Cos (degrees);
 		return output;
+	}
+
+	//Sets up events.
+	private void HookUpEvents()
+	{
+		cart.OnHitCart += HitCart;
+		cart.OnHitObstacle += HitObstacle;
+		cart.OnHitDriver += HitDriver;
+
+		//Driver handles everything as an obstacle collision.
+		driver.OnHitObstacle += HitObstacle;
+		driver.OnHitDriver += HitObstacle;
+		driver.OnHitCart += HitObstacle;
+
+		driver.OnHitObstacle_Stay += HitObstacle_Stay;
+		driver.OnHitDriver_Stay += HitDriver_Stay;
+		driver.OnHitCart_Stay += HitCart_Stay;
+
+		cart.OnHitObstacle_Stay += HitObstacle_Stay;
+		cart.OnHitDriver_Stay += HitDriver_Stay;
+		cart.OnHitCart_Stay += HitCart_Stay;
+
+		cart.OnHitItem += HitItem;
+		driver.OnHitItem += HitItem;
+	}
+
+	//Removes our functions from all events.
+	private void UnhookEvents()
+	{
+		cart.OnHitObstacle -= HitObstacle;
+		cart.OnHitDriver -= HitDriver;
+		cart.OnHitCart -= HitObstacle;
+		cart.OnHitObstacle_Stay -= HitObstacle_Stay;
+		cart.OnHitDriver_Stay -= HitDriver_Stay;
+		cart.OnHitCart_Stay -= HitCart_Stay;
+
+		driver.OnHitObstacle -= HitObstacle;
+		driver.OnHitDriver -= HitObstacle;
+		driver.OnHitCart -= HitObstacle;
+		driver.OnHitObstacle_Stay -= HitObstacle_Stay;
+		driver.OnHitDriver_Stay -= HitDriver_Stay;
+		driver.OnHitCart_Stay -= HitCart_Stay;
+
+		driver.OnHitItem -= HitItem;
+		cart.OnHitItem -= HitItem;
 	}
 }

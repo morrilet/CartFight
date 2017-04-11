@@ -1,0 +1,171 @@
+﻿using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using System.Collections;
+using System.Collections.Generic;
+using XInputDotNetPure;
+
+public class LobbyManager : MonoBehaviour 
+{
+	////////// Variables //////////
+	public string gameSceneName; //The scene to load when the game is started.
+	public Button readyButton; //The button that starts the game.
+	public LobbyPanel[] lobbyPanels = new LobbyPanel[4]; //The panels that have joined the game. 
+														 //(Each panel represents one player)
+	private List<ControlScheme> availableControlSchemes; //The control schemes still available for use.
+	private ControlScheme wasd_Controls;
+	private ControlScheme ijkl_Controls;
+	private ControlScheme arrow_Controls;
+	private ControlScheme gamepad1_Controls;
+	private ControlScheme gamepad2_Controls;
+	private ControlScheme gamepad3_Controls;
+	private ControlScheme gamepad4_Controls;
+	private static List<LobbyPanel.LobbyPlayerData> joinedPlayerData; //This is a list of all joinePlayer objects from 
+																	  //the panels. Because static objects persist between
+																	  //scenes, this is used by the game manager to start
+																	  //the game.
+
+	////////// Accessors //////////
+	public static List<LobbyPanel.LobbyPlayerData> JoinedPlayerData
+	{
+		get { return joinedPlayerData; }
+	}
+
+	////////// Primary Methods //////////
+	void Start()
+	{
+		InitializeControlSchemes ();
+		InitializeAvailableControlSchemes ();
+	}
+
+	void Update()
+	{
+		//Logic for adding/removing players from panels.
+		//TODO: Add gamepad control join checking logic.
+		if (Input.GetKeyDown (KeyCode.W))
+		{
+			if (availableControlSchemes.Contains (wasd_Controls))
+			{
+				Join (wasd_Controls);
+			}
+			else
+			{
+				Remove (wasd_Controls);
+			}
+		}
+		if (Input.GetKeyDown (KeyCode.I))
+		{
+			if (availableControlSchemes.Contains (ijkl_Controls))
+			{
+				Join (ijkl_Controls);
+			}
+			else
+			{
+				Remove (ijkl_Controls);
+			}
+		}
+		if (Input.GetKeyDown (KeyCode.UpArrow))
+		{
+			if (availableControlSchemes.Contains (arrow_Controls))
+			{
+				Join (arrow_Controls);
+			}
+			else
+			{
+				Remove (arrow_Controls);
+			}
+		}
+
+		//Set the ready button interactable state to true or false based on how many players are joined.
+		int joinedPlayersCount = 0;
+		for (int i = 0; i < lobbyPanels.Length; i++) 
+		{
+			if (lobbyPanels [i].JoinedPlayer.PlayerNumber != Player.PlayerNumber.None) 
+			{
+				joinedPlayersCount++;
+			}
+		}
+		readyButton.interactable = (joinedPlayersCount >= 2) ? true : false;
+
+		//Testing...
+		string debugOutput = "Available Controls :: ";
+		for (int i = 0; i < availableControlSchemes.Count; i++) 
+		{
+			debugOutput += " (" + availableControlSchemes[i].UpKey.ToString() + ") ";
+		}
+		//Debug.Log (debugOutput);
+	}
+
+	////////// Custom Methods //////////
+	public void StartGame()
+	{
+		joinedPlayerData = new List<LobbyPanel.LobbyPlayerData> ();
+
+		//Add copies of all the players that have joined to the joinedPlayerData list so that
+		//they can be spawned in the game scene by the game manager.
+		for (int i = 0; i < lobbyPanels.Length; i++) 
+		{
+			if (lobbyPanels [i].JoinedPlayer.PlayerNumber != Player.PlayerNumber.None) 
+			{
+				joinedPlayerData.Add (new LobbyPanel.LobbyPlayerData(
+					lobbyPanels[i].JoinedPlayer.PlayerNumber, lobbyPanels[i].JoinedPlayer.Controls));
+			}
+		}
+
+		//Load the main game scene.
+		SceneManager.LoadScene(gameSceneName);
+	}
+
+	private void Join(ControlScheme controls) //What control scheme was used to join? 
+	{										  //A.K.A. What control scheme will this player use?
+		availableControlSchemes.Remove(controls);
+
+		//Add the new player with the correct control scheme and player number to the panel.
+		for (int i = 0; i < lobbyPanels.Length; i++) 
+		{
+			//The first lobby panel w/o a joined player...
+			if (lobbyPanels [i].JoinedPlayer.PlayerNumber == Player.PlayerNumber.None) 
+			{
+				lobbyPanels [i].AddPlayer ((Player.PlayerNumber)i, controls);
+				break;
+			}
+		}
+	}
+		
+	private void Remove(ControlScheme controls) //Remove a player based on the control scheme they use.
+	{
+		for (int i = 0; i < lobbyPanels.Length; i++) 
+		{
+			if (lobbyPanels [i].JoinedPlayer.Controls == controls) 
+			{
+				lobbyPanels [i].RemovePlayer ();
+				availableControlSchemes.Add (controls);
+			}
+		}
+	}
+
+	private void InitializeControlSchemes() //Creates all of the control schemes.
+	{
+		wasd_Controls = new ControlScheme(KeyCode.W, KeyCode.S, KeyCode.D, KeyCode.A);
+		ijkl_Controls = new ControlScheme(KeyCode.I, KeyCode.K, KeyCode.L, KeyCode.J);
+		arrow_Controls = new ControlScheme (KeyCode.UpArrow, KeyCode.DownArrow, 
+			KeyCode.RightArrow, KeyCode.LeftArrow);
+		gamepad1_Controls = new ControlScheme (PlayerIndex.One);
+		gamepad2_Controls = new ControlScheme (PlayerIndex.Two);
+		gamepad3_Controls = new ControlScheme (PlayerIndex.Three);
+		gamepad4_Controls = new ControlScheme (PlayerIndex.Four);
+	}
+
+	private void InitializeAvailableControlSchemes() //Add all control schemes to available control schemes.
+	{
+		availableControlSchemes = new List<ControlScheme> ();
+
+		availableControlSchemes.Add (wasd_Controls);
+		availableControlSchemes.Add (ijkl_Controls);
+		availableControlSchemes.Add (arrow_Controls);
+		availableControlSchemes.Add (gamepad1_Controls);
+		availableControlSchemes.Add (gamepad2_Controls);
+		availableControlSchemes.Add (gamepad3_Controls);
+		availableControlSchemes.Add (gamepad4_Controls);
+	}
+}

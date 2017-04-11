@@ -47,10 +47,11 @@ public class GameManager : MonoBehaviour
 
 		//This player setup code is just here for now. Use a lobby in the future to link
 		//players to the appropriate player number and input method.
-		players = new PlayerData[2];
+		players = new PlayerData[LobbyManager.JoinedPlayerData.Count];
 		for (int i = 0; i < players.Length; i++) 
 		{
-			players [i].player = SpawnPlayer ((Player.PlayerNumber)i, 0.0f);
+			players [i].player = SpawnPlayer (LobbyManager.JoinedPlayerData[i].PlayerNumber, 
+				LobbyManager.JoinedPlayerData[i].Controls, 0.0f);
 			//Debug.Log (players[i].player.playerNumber.ToString() + " " + players[i].points);
 		}
 	}
@@ -103,16 +104,17 @@ public class GameManager : MonoBehaviour
 	}
 
 	//Public for now. Need to implement singleton.
-	public Player SpawnPlayer(Player.PlayerNumber pNumber, float seconds)
+	public Player SpawnPlayer(Player.PlayerNumber pNumber, ControlScheme controls, float seconds)
 	{
 		Player newPlayer;
 
 		UpdateAvailablePlayerSpawns (); //Ensure that our avalable spawns list is accurate.
 		int spawnerIndex = Random.Range (0, availablePlayerSpawnPoints.Count); //Choose a random index from available spawns.
 		newPlayer = availablePlayerSpawnPoints [spawnerIndex].SpawnPlayer (pNumber, seconds);
+		newPlayer.controlScheme = controls;
 		//UpdateAvailablePlayerSpawns (); //While not strictly necessary, this keeps the list clean between uses.
 
-		//Replace the player of the same player number in our players list with the new player.
+		//Replace the player of the same player number in our players array with the new player.
 		for (int i = 0; i < players.Length; i++) 
 		{
 			if (players [i].player != null) 

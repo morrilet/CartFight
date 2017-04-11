@@ -1,15 +1,23 @@
 ﻿using UnityEngine;
 using System.Collections;
+using XInputDotNetPure;
 
-public class InputManager : MonoBehaviour {
-
-	// Use this for initialization
-	void Start () {
-	
+public class InputManager : MonoBehaviour 
+{
+	public static InputManager instance;
+	void Awake()
+	{
+		if (instance == null)
+		{
+			instance = this;
+		}
+		else 
+		{
+			Destroy (this.gameObject);
+		}
 	}
-	
-	// Update is called once per frame
-	void Update () {
-	
+
+	void Start()
+	{
 	}
 }
