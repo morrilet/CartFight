@@ -1,13 +1,15 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class Item : MonoBehaviour 
+public class Item : MonoBehaviour
 {
 	public enum ItemType
 	{
-		Meat, Veggie, Spice
+		Meat, Veggie, Cheese
 	};
 	public ItemType itemType;
+
+	public Sprite[] itemImages;
 
 	//Perhaps make there
 	[HideInInspector]
@@ -23,6 +25,11 @@ public class Item : MonoBehaviour
 	public int pointValue; //Points to add to the player at an interval.
 	public float pointTime; //How long between adding points.
 	private float pointTimer;
+
+	void Start()
+	{
+		GetComponent<SpriteRenderer> ().sprite = itemImages [(int) itemType];
+	}
 
 	void Update()
 	{

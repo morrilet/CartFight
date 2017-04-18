@@ -9,6 +9,7 @@ public class LobbyManager : MonoBehaviour
 {
 	////////// Variables //////////
 	public string gameSceneName; //The scene to load when the game is started.
+	public string mainMenuName;
 	public Button readyButton; //The button that starts the game.
 	public LobbyPanel[] lobbyPanels = new LobbyPanel[4]; //The panels that have joined the game. 
 														 //(Each panel represents one player)
@@ -114,6 +115,11 @@ public class LobbyManager : MonoBehaviour
 
 		//Load the main game scene.
 		SceneManager.LoadScene(gameSceneName);
+	}
+
+	public void ReturnToMenu()
+	{
+		SceneManager.LoadScene (mainMenuName);
 	}
 
 	private void Join(ControlScheme controls) //What control scheme was used to join? 

@@ -8,6 +8,8 @@ using System.Collections.Generic;
 /// </summary>
 public class GameManager : MonoBehaviour
 {
+	public int scoreLimit = 100;
+
 	//When a player dies, they are assigned a respawn point that becomes unavailable to all other
 	//players until they've been respawned.
 	public List<SpawnPoint> playerSpawnPoints; //The player spawn points on the map.
@@ -64,9 +66,10 @@ public class GameManager : MonoBehaviour
 
 		for (int i = 0; i < players.Length; i++)
 		{
-			if (players [i].points >= 100) 
+			if (players [i].points >= scoreLimit)
 			{
-				players [i].points = 100;
+				players [i].points = scoreLimit;
+				GUI.instance.UpdateScoreTexts ();
 				SceneManager.LoadScene ("Results");
 			}
 		}
@@ -77,6 +80,7 @@ public class GameManager : MonoBehaviour
 			for (int i = 0; i < players.Length; i++) 
 			{
 				AddPointsToPlayer (players [i].player, players [i].player.carriedItems.Count);
+				GUI.instance.UpdateScoreTexts ();
 			}
 		}
 

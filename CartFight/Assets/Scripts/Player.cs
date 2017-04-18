@@ -43,6 +43,10 @@ public class Player : MonoBehaviour
 	[HideInInspector]
 	public List<Item> carriedItems; //The items that the player is carrying.
 
+	private Animator driverAnimator; //The animator of the driver component.
+
+	public Sprite[] cartImages;
+
 	public void Start()
 	{
 		controlScheme.Start ();
@@ -79,6 +83,13 @@ public class Player : MonoBehaviour
 		driverLocalPosition = driverObj.transform.localPosition;
 		cartLocalPosition = cartObj.transform.localPosition;
 
+		//Set the driver animation up.
+		driverAnimator = driverObj.GetComponent<Animator> ();
+		driverAnimator.SetInteger ("PlayerNumber", (int)playerNumber + 1);
+
+		//Set the cart to the right image
+		cartObj.GetComponent<SpriteRenderer> ().sprite = cartImages [(int)playerNumber];
+
 		HookUpEvents ();
 	}
 
@@ -93,6 +104,10 @@ public class Player : MonoBehaviour
 			//Continually place driver and cart at their starting local positions.
 			driverObj.transform.localPosition = driverLocalPosition;
 			cartObj.transform.localPosition = cartLocalPosition;
+
+			//Update the drivers animation speed based on our current velocity.
+			float clampedSpeed = velocity.magnitude / maxVelocity; //Our speed from 0-1.
+			driverAnimator.SetFloat("AnimationSpeed", clampedSpeed);
 		}
 	}
 
@@ -114,7 +129,8 @@ public class Player : MonoBehaviour
 
 		GameManager.instance.SpawnPlayer (playerNumber, controlScheme, 5f);
 		Destroy (driverObj);
-		Destroy (this.gameObject, 3f);
+		Destroy (this);
+		//Destroy (this.gameObject, 3f);
 	}
 
 	public void HitItem(Collision2D other)
@@ -138,7 +154,8 @@ public class Player : MonoBehaviour
 		//Reflect current velocity with little dampening.
 		velocity = Vector2.Reflect (velocity, other.contacts [0].normal) * 0.75f;
 		//Push the other cart.
-		other.transform.parent.GetComponent<Player>().velocity -= velocity * 0.25f;
+		if(other.transform.parent.gameObject.GetComponent<Player>()!= null)
+			other.transform.parent.GetComponent<Player>().velocity += velocity * 0.25f;
 
 		//HandleCollision (other, 1 << LayerMask.NameToLayer("Cart"));
 	}
@@ -200,10 +217,8 @@ public class Player : MonoBehaviour
 		{
 			//Find the closest point on the obstacle to move to.
 			Vector2 direction = other.contacts [0].point - (Vector2)transform.position;
-			//Stopped using distance because it was continually inside the bounds
-			//of our components. Opted to use 25 because that guarantees multiple hits
+			//Opted to use 25 because that guarantees multiple hits
 			//and a more accurate shortest distance and nearest point.
-			float distance = Vector2.Distance ((Vector2)transform.position, other.contacts [0].point);
 			RaycastHit2D[] hits = Physics2D.RaycastAll ((Vector2)transform.position, direction, 
 				25f, mask);
 
@@ -212,7 +227,7 @@ public class Player : MonoBehaviour
 			                                     //transform.position and the collision point.
 			for (int i = 0; i < hits.Length; i++) 
 			{
-				//If the collider isn't one of ours...
+				//Check that the collider isn't one of ours...
 				bool validHit = true;
 				if (cartObj != null && cartObj.GetComponent<Collider2D> () != null) 
 				{
@@ -228,7 +243,7 @@ public class Player : MonoBehaviour
 						validHit = false;
 					}
 				}
-				if (validHit) 
+				if (validHit)
 				{
 					//Check the raycast hit against the current shortest distance.
 					if (Vector2.Distance(hits [i].point, transform.position) < shortestDistance)
@@ -254,7 +269,8 @@ public class Player : MonoBehaviour
 			//Move the collision point to this point.
 			Vector3 offset = transform.position;
 			velocity = (Vector2)nearestPoint - (Vector2)other.contacts [0].point;
-			offset += (Vector3)nearestPoint - (Vector3)other.contacts [0].point;
+			offset += (Vector3)other.contacts[0].normal * 
+				((Vector3)nearestPoint - (Vector3)other.contacts [0].point).magnitude;
 			transform.position = offset;
 		}
 	}

@@ -9,6 +9,7 @@ public class LobbyPanel : MonoBehaviour
 	private LobbyPlayerData joinedPlayer; //The player that joined via this panel.
 	public List<GameObject> inactiveObjects; //The panel objects shown when a player isn't connected.
 	public List<GameObject> activeObjects; //The panel objects shown when a player is connected.
+	public Text playerNumberText;
 
 	////////// Custom Data Types //////////
 	public struct LobbyPlayerData
@@ -52,6 +53,7 @@ public class LobbyPanel : MonoBehaviour
 		//Create the player info to be passed to the GameManager in the gameplay scene.
 		LobbyPlayerData newPlayerData = new LobbyPlayerData(playerNumber, controlScheme);
 		joinedPlayer = newPlayerData;
+		playerNumberText.text = "P" + ((int)playerNumber + 1);
 
 		//Switch the panel objects to reflect that the panel has been taken.
 		SetListActive (inactiveObjects, false);
