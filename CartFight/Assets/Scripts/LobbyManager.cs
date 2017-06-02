@@ -8,6 +8,7 @@ using XInputDotNetPure;
 public class LobbyManager : MonoBehaviour 
 {
 	////////// Variables //////////
+
 	public string gameSceneName; //The scene to load when the game is started.
 	public string mainMenuName;
 	public Button readyButton; //The button that starts the game.
@@ -30,12 +31,14 @@ public class LobbyManager : MonoBehaviour
 	private GamePadState[] gamepad_PrevStates; //Houses the previous states for gamepads 1-4 (0-3).
 
 	////////// Accessors //////////
+
 	public static List<LobbyPanel.LobbyPlayerData> JoinedPlayerData
 	{
 		get { return joinedPlayerData; }
 	}
 
 	////////// Primary Methods //////////
+
 	void Start()
 	{
 		gamepad_States = new GamePadState[4];
@@ -52,11 +55,6 @@ public class LobbyManager : MonoBehaviour
 		{
 			gamepad_States [i] = GamePad.GetState ((PlayerIndex)i);
 		}
-
-		//Testing gamepad states...
-		//Debug.LogFormat("CurrStates: P1 :: {0} P2 :: {1} P3 :: {2} P4 :: {3}", 
-		//	gamepad_States[0].IsConnected, gamepad_States[1].IsConnected, 
-		//	gamepad_States[2].IsConnected, gamepad_States[3].IsConnected);
 
 		//Logic for adding/removing players from panels.
 		if (Input.GetKeyDown (KeyCode.W))
@@ -168,6 +166,7 @@ public class LobbyManager : MonoBehaviour
 	}
 
 	////////// Custom Methods //////////
+
 	public void StartGame()
 	{
 		joinedPlayerData = new List<LobbyPanel.LobbyPlayerData> ();

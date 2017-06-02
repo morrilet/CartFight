@@ -4,7 +4,7 @@ using XInputDotNetPure;
 
 /// <summary>
 /// This class contains the key/gamepad info that is used to determine inputs
-/// for different player.
+/// for different players.
 /// </summary>
 public class ControlScheme 
 {
@@ -16,17 +16,15 @@ public class ControlScheme
 	private PlayerIndex playerIndex; //The gamepad from which to get state info from if we're using a gamepad.
 	private float horizontal, vertical; //The input axes. -1 = left/down, 0 = no input, 1 = right/up.
 	private bool throwKeyDown = false;
-	private bool prevThrowKeyDown = false;
 
 	///////// Accessors //////////
 
-	public bool IsGamePad { get { return this.isGamePad; } set { this.isGamePad = value; } }
-	//We may not need the keycode accessors, actually, because of the constructors.
-	public KeyCode UpKey { get { return this.upKey; } set { this.upKey = value; } }
-	public KeyCode DownKey { get { return this.downKey; } set { this.downKey = value; } }
-	public KeyCode RightKey { get { return this.rightKey; } set { this.rightKey = value; } }
-	public KeyCode LeftKey { get { return this.leftKey; } set { this.leftKey = value; } }
-	public KeyCode ThrowKey { get { return this.throwKey; } set { this.throwKey = value; } }
+	public bool IsGamePad { get { return this.isGamePad; } }
+	public KeyCode UpKey { get { return this.upKey; } }
+	public KeyCode DownKey { get { return this.downKey; } }
+	public KeyCode RightKey { get { return this.rightKey; } }
+	public KeyCode LeftKey { get { return this.leftKey; } }
+	public KeyCode ThrowKey { get { return this.throwKey; } }
 
 	public float Horizontal { get { return this.horizontal; } }
 	public float Vertical { get { return this.vertical; } }
