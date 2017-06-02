@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class Item : MonoBehaviour
+public class Item : PausableObject
 {
 	public enum ItemType
 	{
@@ -33,6 +33,9 @@ public class Item : MonoBehaviour
 
 	void Update()
 	{
+		if (IsPaused)
+			return;
+
 		if (pickedUp)
 		{
 			FollowPlayer ();

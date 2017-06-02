@@ -26,6 +26,9 @@ public class LobbyManager : MonoBehaviour
 																	  //scenes, this is used by the game manager to start
 																	  //the game.
 
+	private GamePadState[] gamepad_States; //Houses the current states for gamepads 1-4 (0-3).
+	private GamePadState[] gamepad_PrevStates; //Houses the previous states for gamepads 1-4 (0-3).
+
 	////////// Accessors //////////
 	public static List<LobbyPanel.LobbyPlayerData> JoinedPlayerData
 	{
@@ -35,14 +38,27 @@ public class LobbyManager : MonoBehaviour
 	////////// Primary Methods //////////
 	void Start()
 	{
+		gamepad_States = new GamePadState[4];
+		gamepad_PrevStates = new GamePadState[4];
+
 		InitializeControlSchemes ();
 		InitializeAvailableControlSchemes ();
 	}
 
 	void Update()
 	{
+		//Updating gamepad states. Should work if players plug in during lobby screen.
+		for (int i = 0; i < gamepad_States.Length; i++) 
+		{
+			gamepad_States [i] = GamePad.GetState ((PlayerIndex)i);
+		}
+
+		//Testing gamepad states...
+		//Debug.LogFormat("CurrStates: P1 :: {0} P2 :: {1} P3 :: {2} P4 :: {3}", 
+		//	gamepad_States[0].IsConnected, gamepad_States[1].IsConnected, 
+		//	gamepad_States[2].IsConnected, gamepad_States[3].IsConnected);
+
 		//Logic for adding/removing players from panels.
-		//TODO: Add gamepad control join checking logic.
 		if (Input.GetKeyDown (KeyCode.W))
 		{
 			if (availableControlSchemes.Contains (wasd_Controls))
@@ -76,6 +92,54 @@ public class LobbyManager : MonoBehaviour
 				Remove (arrow_Controls);
 			}
 		}
+		if (gamepad_States[0].Buttons.Start == ButtonState.Pressed &&
+			gamepad_PrevStates[0].Buttons.Start != ButtonState.Pressed) 
+		{
+			if (availableControlSchemes.Contains (gamepad1_Controls)) 
+			{
+				Join (gamepad1_Controls);
+			} 
+			else 
+			{
+				Remove (gamepad1_Controls);
+			}
+		}
+		if (gamepad_States[1].Buttons.Start == ButtonState.Pressed &&
+			gamepad_PrevStates[1].Buttons.Start != ButtonState.Pressed) 
+		{
+			if (availableControlSchemes.Contains (gamepad2_Controls)) 
+			{
+				Join (gamepad2_Controls);
+			} 
+			else 
+			{
+				Remove (gamepad2_Controls);
+			}
+		}
+		if (gamepad_States[2].Buttons.Start == ButtonState.Pressed &&
+			gamepad_PrevStates[2].Buttons.Start != ButtonState.Pressed) 
+		{
+			if (availableControlSchemes.Contains (gamepad3_Controls)) 
+			{
+				Join (gamepad3_Controls);
+			} 
+			else 
+			{
+				Remove (gamepad3_Controls);
+			}
+		}
+		if (gamepad_States[3].Buttons.Start == ButtonState.Pressed &&
+			gamepad_PrevStates[3].Buttons.Start != ButtonState.Pressed) 
+		{
+			if (availableControlSchemes.Contains (gamepad4_Controls)) 
+			{
+				Join (gamepad4_Controls);
+			} 
+			else 
+			{
+				Remove (gamepad4_Controls);
+			}
+		}
 
 		//Set the ready button interactable state to true or false based on how many players are joined.
 		int joinedPlayersCount = 0;
@@ -87,6 +151,12 @@ public class LobbyManager : MonoBehaviour
 			}
 		}
 		readyButton.interactable = (joinedPlayersCount >= 2) ? true : false;
+
+		//Update previous gamepad states.
+		for(int i = 0; i < gamepad_PrevStates.Length; i++)
+		{
+			gamepad_PrevStates [i] = gamepad_States [i];
+		}
 
 		//Testing...
 		string debugOutput = "Available Controls :: ";
@@ -152,10 +222,10 @@ public class LobbyManager : MonoBehaviour
 
 	private void InitializeControlSchemes() //Creates all of the control schemes.
 	{
-		wasd_Controls = new ControlScheme(KeyCode.W, KeyCode.S, KeyCode.D, KeyCode.A);
-		ijkl_Controls = new ControlScheme(KeyCode.I, KeyCode.K, KeyCode.L, KeyCode.J);
+		wasd_Controls = new ControlScheme(KeyCode.W, KeyCode.S, KeyCode.D, KeyCode.A, KeyCode.Q);
+		ijkl_Controls = new ControlScheme(KeyCode.I, KeyCode.K, KeyCode.L, KeyCode.J, KeyCode.U);
 		arrow_Controls = new ControlScheme (KeyCode.UpArrow, KeyCode.DownArrow, 
-			KeyCode.RightArrow, KeyCode.LeftArrow);
+			KeyCode.RightArrow, KeyCode.LeftArrow, KeyCode.RightControl);
 		gamepad1_Controls = new ControlScheme (PlayerIndex.One);
 		gamepad2_Controls = new ControlScheme (PlayerIndex.Two);
 		gamepad3_Controls = new ControlScheme (PlayerIndex.Three);

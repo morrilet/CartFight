@@ -10,6 +10,9 @@ public class GameManager : MonoBehaviour
 {
 	public int scoreLimit = 100;
 
+	public Canvas pauseMenu; //The pause menu GUI.
+	private bool isPaused;
+
 	//When a player dies, they are assigned a respawn point that becomes unavailable to all other
 	//players until they've been respawned.
 	public List<SpawnPoint> playerSpawnPoints; //The player spawn points on the map.
@@ -56,6 +59,9 @@ public class GameManager : MonoBehaviour
 				LobbyManager.JoinedPlayerData[i].Controls, 0.0f);
 			//Debug.Log (players[i].player.playerNumber.ToString() + " " + players[i].points);
 		}
+			
+		SetPaused (false);
+		AudioManager.instance.PlayMusic ("Videogame2");
 	}
 
 	void Update()
@@ -63,6 +69,15 @@ public class GameManager : MonoBehaviour
 		//Debug.LogFormat ("{0} : {1} points | {2} : {3} points.", players[0].player.playerNumber, 
 		//	players[0].points, players[1].player.playerNumber, players[1].points);
 		//Debug.Log (players[0].player.playerNumber + " : " + "points");
+
+		//Check for pause...
+		if (Input.GetKeyDown (KeyCode.Escape) || Input.GetKeyDown (KeyCode.Delete)) 
+		{
+			SetPaused (!isPaused);
+		}
+
+		if (isPaused)
+			return;
 
 		for (int i = 0; i < players.Length; i++)
 		{
@@ -158,6 +173,21 @@ public class GameManager : MonoBehaviour
 				}
 			}
 		}
+	}
+
+	public void SetPaused(bool isPaused)
+	{
+		this.isPaused = isPaused;
+
+		//Pause all objects derived from pausable object.
+		PausableObject[] pauseObjs = GameObject.FindObjectsOfType<PausableObject> ();
+		for (int i = 0; i < pauseObjs.Length; i++) 
+		{
+			pauseObjs [i].setPaused (isPaused);
+		}
+
+		//Set the pause menu to an apropriate state.
+		pauseMenu.gameObject.SetActive(isPaused);
 	}
 
 	void OnDrawGizmos ()

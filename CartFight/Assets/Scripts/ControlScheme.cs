@@ -11,10 +11,12 @@ public class ControlScheme
 	///////// Variables //////////
 
 	private bool isGamePad = false;
-	private KeyCode upKey, downKey, rightKey, leftKey; //The keys that create input values if not using a gamepad.
+	private KeyCode upKey, downKey, rightKey, leftKey, throwKey; //The keys that create input values if not using a gamepad.
 	private GamePadState state, prevState; //The states to get input from if we're using a gamepad.
 	private PlayerIndex playerIndex; //The gamepad from which to get state info from if we're using a gamepad.
 	private float horizontal, vertical; //The input axes. -1 = left/down, 0 = no input, 1 = right/up.
+	private bool throwKeyDown = false;
+	private bool prevThrowKeyDown = false;
 
 	///////// Accessors //////////
 
@@ -24,9 +26,11 @@ public class ControlScheme
 	public KeyCode DownKey { get { return this.downKey; } set { this.downKey = value; } }
 	public KeyCode RightKey { get { return this.rightKey; } set { this.rightKey = value; } }
 	public KeyCode LeftKey { get { return this.leftKey; } set { this.leftKey = value; } }
+	public KeyCode ThrowKey { get { return this.throwKey; } set { this.throwKey = value; } }
+
 	public float Horizontal { get { return this.horizontal; } }
 	public float Vertical { get { return this.vertical; } }
-
+	public bool ThrowKeyDown { get { return this.throwKeyDown; } }
 
 	///////// Constructors //////////
 
@@ -36,13 +40,14 @@ public class ControlScheme
 		this.playerIndex = playerIndex;
 	}
 
-	public ControlScheme (KeyCode upKey, KeyCode downKey, KeyCode rightKey, KeyCode leftKey)
+	public ControlScheme (KeyCode upKey, KeyCode downKey, KeyCode rightKey, KeyCode leftKey, KeyCode throwKey)
 	{
 		isGamePad = false;
 		this.upKey = upKey;
 		this.downKey = downKey;
 		this.rightKey = rightKey;
 		this.leftKey = leftKey;
+		this.throwKey = throwKey;
 	}
 
 	///////// Primary Methods //////////
@@ -65,6 +70,7 @@ public class ControlScheme
 		{
 			horizontal = state.ThumbSticks.Right.X;
 			vertical = state.ThumbSticks.Left.Y;
+			throwKeyDown = ((state.Triggers.Right == 1) && (prevState.Triggers.Right == 0));
 
 			prevState = state;
 			state = GamePad.GetState (playerIndex);
@@ -97,6 +103,15 @@ public class ControlScheme
 			else //Neither are down...
 			{
 				vertical = 0;
+			}
+
+			if (Input.GetKeyDown (throwKey)) 
+			{
+				throwKeyDown = true;
+			}
+			else
+			{
+				throwKeyDown = false;
 			}
 		}
 	}
