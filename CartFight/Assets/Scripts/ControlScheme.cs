@@ -17,6 +17,14 @@ public class ControlScheme
 	private float horizontal, vertical; //The input axes. -1 = left/down, 0 = no input, 1 = right/up.
 	private bool throwKeyDown = false;
 
+	public enum GamepadControlStick //Which stick to use for gathering input. (For both, right = horiz, left = vert.)
+	{
+		BOTH,
+		LEFT,
+		RIGHT
+	};
+	private GamepadControlStick gamepadControlStick;
+
 	///////// Accessors //////////
 
 	public bool IsGamePad { get { return this.isGamePad; } }
@@ -30,12 +38,21 @@ public class ControlScheme
 	public float Vertical { get { return this.vertical; } }
 	public bool ThrowKeyDown { get { return this.throwKeyDown; } }
 
+	public GamepadControlStick GamepadControls
+	{ 
+		get { return this.gamepadControlStick; } 
+		set { this.gamepadControlStick = value; } 
+	}
+
 	///////// Constructors //////////
 
 	public ControlScheme (PlayerIndex playerIndex)
 	{
 		isGamePad = true;
 		this.playerIndex = playerIndex;
+
+		//Default controls are both.
+		gamepadControlStick = GamepadControlStick.BOTH;
 	}
 
 	public ControlScheme (KeyCode upKey, KeyCode downKey, KeyCode rightKey, KeyCode leftKey, KeyCode throwKey)
@@ -66,8 +83,27 @@ public class ControlScheme
 	{
 		if (isGamePad) 
 		{
-			horizontal = state.ThumbSticks.Right.X;
-			vertical = state.ThumbSticks.Left.Y;
+			switch (gamepadControlStick) 
+			{
+				case GamepadControlStick.BOTH:
+					horizontal = state.ThumbSticks.Right.X;
+					vertical = state.ThumbSticks.Left.Y;
+					break;
+				case GamepadControlStick.LEFT:
+					horizontal = state.ThumbSticks.Left.X;
+					vertical = state.ThumbSticks.Left.Y;
+					break;
+				case GamepadControlStick.RIGHT:
+					horizontal = state.ThumbSticks.Right.X;
+					vertical = state.ThumbSticks.Right.Y;
+					break;
+				default:
+					horizontal = 0;
+					vertical = 0;
+					Debug.Log ("Invalid GamepadControlStick!");
+					break;
+			}
+
 			throwKeyDown = ((state.Triggers.Right == 1) && (prevState.Triggers.Right == 0));
 
 			prevState = state;

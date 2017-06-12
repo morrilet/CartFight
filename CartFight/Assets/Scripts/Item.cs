@@ -55,7 +55,7 @@ public class Item : PausableObject
 	}
 
 	//Get picked up.
-	public void PickUp(Player player)
+	public void GetPickedUpByPlayer(Player player)
 	{
 		pickedUp = true;
 		this.player = player;
@@ -64,11 +64,34 @@ public class Item : PausableObject
 	}
 
 	//Get dropped.
-	public void Drop()
+	public void GetDropped()
 	{
 		//In the future, maybe throw the object in a direction.
 		pickedUp = false;
 		player = null;
+
+		GetComponent<Collider2D> ().enabled = true;
+	}
+
+	//Get placed in a cart.
+	public void GetPlacedInCart(GameObject cartObj)
+	{
+		pickedUp = false;
+		player = null;
+
+		transform.SetParent (cartObj.transform);
+		transform.position = cartObj.transform.position;
+
+		GetComponent<Collider2D> ().enabled = false;
+	}
+
+	//Get removed from a cart.
+	public void GetRemovedFromCart()
+	{
+		pickedUp = false;
+		player = null;
+
+		transform.SetParent (null);
 
 		GetComponent<Collider2D> ().enabled = true;
 	}

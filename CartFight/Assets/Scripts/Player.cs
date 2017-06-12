@@ -128,14 +128,17 @@ public class Player : PausableObject
 					Debug.Log ("Trying to add cart...");
 					foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Cart"))
 					{
-						if (obj.transform.parent == null) 
+						if (obj.transform.parent == null)
 						{
-							foreach (Collider2D coll in driver.Touching) 
+							foreach (Collider2D coll in driver.Touching)
 							{
 								if (coll.gameObject.transform.Equals (obj.transform)) 
 								{
-									Debug.Log("Cart added!");
-									AddCart (obj);
+									Debug.Log("Cart added! :: " + obj.name);
+									if (cartObj == null) //Double check this.
+									{
+										AddCart (obj);
+									}
 								}
 							}
 						}
@@ -160,18 +163,23 @@ public class Player : PausableObject
 	//Takes the cart off of the player object, making it a separate entity.
 	private void RemoveCart(Vector2 force)
 	{
+		//Separate the cart from the rest of the player.
 		cartObj.gameObject.name = "Cart";
 		cartObj.GetComponent<Rigidbody2D> ().constraints = RigidbodyConstraints2D.None;
 		cartObj.transform.SetParent (null);
 		cartObj.GetComponent<Rigidbody2D> ().AddForce (force, ForceMode2D.Impulse);
+		PutItemsInCart (cartObj); //Place all carried items into the cart.
 		UnhookCartEvents ();
 
+		//Ignore collisions with items and the cart.
 		foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Item")) 
 		{
 			Physics2D.IgnoreCollision (cartObj.GetComponent<Collider2D> (), obj.GetComponent<Collider2D> (), true);
 		}
+		//Don't ignore collisions between the player and the cart.
 		Physics2D.IgnoreCollision (driverObj.GetComponent<Collider2D>(), cartObj.GetComponent<Collider2D>(), false);
 
+		//Empty our references.
 		cartObj = null;
 		cart = null;
 	}
@@ -179,19 +187,58 @@ public class Player : PausableObject
 	//Adds a cart to this player object.
 	private void AddCart(GameObject cartObj)
 	{
+		//Attach the cart to the rest of the player.
 		this.cartObj = cartObj;
 		this.cart = cartObj.GetComponent<PlayerComponent> ();
 		this.cartObj.GetComponent<Rigidbody2D> ().constraints = RigidbodyConstraints2D.FreezeAll;
 		this.cartObj.transform.SetParent (this.transform);
 		this.cartObjPrev = this.cartObj;
-
+		TakeItemsFromCart (cartObj); ///Get all the objects from the cart.
 		HookupCartEvents ();
 
+		//Stop ignoring collisions between the cart and items.
 		foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Item"))
 		{
 			Physics2D.IgnoreCollision (cart.GetComponent<Collider2D> (), obj.GetComponent<Collider2D> (), false);
 		}
+		//Ignore collisions between the player and the cart.
 		Physics2D.IgnoreCollision (driverObj.GetComponent<Collider2D> (), this.cartObj.GetComponent<Collider2D> ());
+	}
+
+	//Places our currently carried items into a cart.
+	private void PutItemsInCart(GameObject cartObj)
+	{
+		//++i makes no copy of i and is faster. No bugs because of the limited use case here.
+		for (int i = 0; i < carriedItems.Count; ++i) 
+		{
+			carriedItems [i].GetDropped ();
+			carriedItems [i].GetPlacedInCart (cartObj);
+		}
+		carriedItems = new List<Item> ();
+	}
+
+	//Takes the items from a cart and places them into the carried object list.
+	private void TakeItemsFromCart(GameObject cartObj)
+	{
+		Item[] cartItems = cartObj.GetComponentsInChildren<Item> ();
+		for (int i = 0; i < cartItems.Length; ++i) 
+		{
+			cartItems [i].GetRemovedFromCart ();
+			PickupItem (cartItems [i]);
+		}
+	}
+
+	//Adds an item to the carried items list.
+	private void PickupItem(Item item)
+	{
+		item.GetPickedUpByPlayer (this.GetComponent<Player> ());
+
+		item.followDistance = 2.5f + (1.25f * carriedItems.Count);
+		item.speed = 4.0f / (1.0f + carriedItems.Count);
+
+		carriedItems.Add (item);
+
+		AudioManager.instance.PlayEffect ("PickupFood");
 	}
 
 	public void Die()
@@ -207,7 +254,7 @@ public class Player : PausableObject
 		for (int i = 0; i < carriedItems.Count; i++)
 		{
 			Debug.Log (carriedItems[i].gameObject.name);
-			carriedItems [i].Drop ();
+			carriedItems [i].GetDropped ();
 		}
 		carriedItems.RemoveRange (0, carriedItems.Count);
 
@@ -234,15 +281,7 @@ public class Player : PausableObject
 		Debug.Log ("Hit item.");
 		if(!other.gameObject.GetComponent<Item>().isPickedUp() && this.cartObj != null)
 		{
-			other.gameObject.GetComponent<Item> ().PickUp (this.GetComponent<Player> ());
-
-			//Do this before adding to count...
-			other.gameObject.GetComponent<Item> ().followDistance = 2.5f + (1.25f * carriedItems.Count);
-			other.gameObject.GetComponent<Item> ().speed = 4.0f / (1.0f + carriedItems.Count);
-
-			carriedItems.Add (other.gameObject.GetComponent<Item> ());
-
-			AudioManager.instance.PlayEffect ("PickupFood");
+			PickupItem (other.gameObject.GetComponent<Item> ());
 		}
 	}
 
@@ -392,27 +431,65 @@ public class Player : PausableObject
 		//Pull the input from our desired control scheme.
 		Vector2 input = new Vector2 (controlScheme.Horizontal, controlScheme.Vertical);
 
-		//Turning
-		if (input.x != 0)
+		if (controlScheme.IsGamePad && 
+			controlScheme.GamepadControls != ControlScheme.GamepadControlStick.LEFT) 
 		{
-			transform.rotation = Quaternion.Euler (transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y,
-				transform.rotation.eulerAngles.z + (-input.x * (turnSpeed * 2.0f)) * Time.deltaTime);
+			controlScheme.GamepadControls = ControlScheme.GamepadControlStick.LEFT;
+		}
+
+		//Debugging...
+		if (controlScheme.IsGamePad) 
+		{
+			Debug.Log ("Controller inputs... " + input);
+		}
+
+		//Keyboard...
+		if(!controlScheme.IsGamePad)
+		{
+			if (input.x != 0 && !controlScheme.IsGamePad) ///Turning...
+			{
+				transform.rotation = Quaternion.Euler (transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y,
+					transform.rotation.eulerAngles.z + (-input.x * (turnSpeed * 2.0f)) * Time.deltaTime);
+			}
+				
+			if (input.y != 0) //Acceleration/deceleration
+			{
+				velocity = (maxVelocity / 1.5f) * transform.right * input.normalized.y;
+			}
+			else 
+			{
+				velocity *= dampening / 5.0f;
+			}
+		}
+		else
+		{
+			if (input.x != 0 || input.y != 0) 
+			{
+				//Get direction of input...
+				Vector2 dir = (((Vector2)transform.position + input) - (Vector2)transform.position).normalized;
+				Debug.DrawLine (transform.position, transform.position + (Vector3)dir);
+
+				//Point the character toward the direction with our turn speed(?)...
+				float angle = Mathf.Atan2 (dir.y, dir.x) * Mathf.Rad2Deg;
+				Quaternion newRot = Quaternion.AngleAxis (angle, Vector3.forward);
+				transform.rotation = Quaternion.RotateTowards (transform.rotation, newRot, turnSpeed);
+
+				//Trim the rotation to only work on the Z axis...
+				transform.eulerAngles = new Vector3 (0.0f, 0.0f, transform.rotation.eulerAngles.z);
+
+				//Handle movement towards the current input direction...
+				velocity = (maxVelocity / 1.5f) * input;
+			}
+			else
+			{
+				velocity *= dampening / 5.0f;
+			}
 		}
 			
 		//Debug.Log (input.normalized);
 		//velocity = (maxVelocity / 1.5f) * input.normalized;
 		//if (velocity.magnitude != 0)
 		//	transform.rotation = Quaternion.AngleAxis(Mathf.Atan2 (velocity.y, velocity.x) * Mathf.Rad2Deg, transform.forward);
-
-		//Basic acceleration/deceleration
-		if (input.y != 0) 
-		{
-			velocity = (maxVelocity / 1.5f) * transform.right * input.normalized.y;
-		}
-		else 
-		{
-			velocity *= dampening / 5.0f;
-		}
 
 		ClampVelocity ();
 
@@ -426,6 +503,12 @@ public class Player : PausableObject
 	{
 		//Pull the input from our desired control scheme.
 		Vector2 input = new Vector2 (controlScheme.Horizontal, controlScheme.Vertical);
+
+		if (controlScheme.IsGamePad && 
+			controlScheme.GamepadControls != ControlScheme.GamepadControlStick.BOTH) 
+		{
+			controlScheme.GamepadControls = ControlScheme.GamepadControlStick.BOTH;
+		}
 
 		//Turning
 		if (input.x != 0)
