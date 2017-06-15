@@ -272,6 +272,8 @@ public class Player : PausableObject
 		driverObj.GetComponent<Collider2D> ().enabled = false;
 		driverObj.transform.SetParent (null);
 
+		driverObj.GetComponent<SpriteRenderer>().sortingLayerName = "DeadPlayers";
+
 		Destroy (this.gameObject);
 		//Destroy (this.gameObject, 3f);
 	}
