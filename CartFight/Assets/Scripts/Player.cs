@@ -101,13 +101,13 @@ public class Player : PausableObject
 
 	void Update()
 	{
+		controlScheme.Update ();
+		
 		if (IsPaused)
 			return;
 
 		if (isAlive) 
 		{
-			controlScheme.Update ();
-
 			if (cartObj != null) 
 			{
 				Move ();

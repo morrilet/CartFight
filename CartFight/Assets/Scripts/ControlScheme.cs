@@ -11,11 +11,12 @@ public class ControlScheme
 	///////// Variables //////////
 
 	private bool isGamePad = false;
-	private KeyCode upKey, downKey, rightKey, leftKey, throwKey; //The keys that create input values if not using a gamepad.
+	private KeyCode upKey, downKey, rightKey, leftKey, throwKey, pauseKey; //The keys that create input values if not using a gamepad.
 	private GamePadState state, prevState; //The states to get input from if we're using a gamepad.
 	private PlayerIndex playerIndex; //The gamepad from which to get state info from if we're using a gamepad.
 	private float horizontal, vertical; //The input axes. -1 = left/down, 0 = no input, 1 = right/up.
 	private bool throwKeyDown = false;
+	private bool pauseKeyDown = false;
 
 	public enum GamepadControlStick //Which stick to use for gathering input. (For both, right = horiz, left = vert.)
 	{
@@ -33,10 +34,12 @@ public class ControlScheme
 	public KeyCode RightKey { get { return this.rightKey; } }
 	public KeyCode LeftKey { get { return this.leftKey; } }
 	public KeyCode ThrowKey { get { return this.throwKey; } }
+	public KeyCode PauseKey { get { return this.pauseKey; } }
 
 	public float Horizontal { get { return this.horizontal; } }
 	public float Vertical { get { return this.vertical; } }
 	public bool ThrowKeyDown { get { return this.throwKeyDown; } }
+	public bool PauseKeyDown { get { return this.pauseKeyDown; } }
 
 	public GamepadControlStick GamepadControls
 	{ 
@@ -55,7 +58,8 @@ public class ControlScheme
 		gamepadControlStick = GamepadControlStick.BOTH;
 	}
 
-	public ControlScheme (KeyCode upKey, KeyCode downKey, KeyCode rightKey, KeyCode leftKey, KeyCode throwKey)
+	public ControlScheme (KeyCode upKey, KeyCode downKey, KeyCode rightKey, KeyCode leftKey, 
+		KeyCode throwKey, KeyCode pauseKey)
 	{
 		isGamePad = false;
 		this.upKey = upKey;
@@ -63,6 +67,7 @@ public class ControlScheme
 		this.rightKey = rightKey;
 		this.leftKey = leftKey;
 		this.throwKey = throwKey;
+		this.pauseKey = pauseKey;
 	}
 
 	///////// Primary Methods //////////
@@ -81,8 +86,9 @@ public class ControlScheme
 
 	public void Update()
 	{
-		if (isGamePad) 
+		if (isGamePad) //Gamepad input.
 		{
+			//Input axes...
 			switch (gamepadControlStick) 
 			{
 				case GamepadControlStick.BOTH:
@@ -105,11 +111,13 @@ public class ControlScheme
 			}
 
 			throwKeyDown = ((state.Triggers.Right == 1) && (prevState.Triggers.Right == 0));
+			pauseKeyDown = ((state.Buttons.Start == ButtonState.Pressed) 
+				&& (prevState.Buttons.Start == ButtonState.Released));
 
 			prevState = state;
 			state = GamePad.GetState (playerIndex);
 		} 
-		else 
+		else //Keyboard input.
 		{
 			//Horizontal input detection.
 			if (Input.GetKey (leftKey) && !Input.GetKey (rightKey)) //Only left key is down...
@@ -146,6 +154,15 @@ public class ControlScheme
 			else
 			{
 				throwKeyDown = false;
+			}
+
+			if (Input.GetKeyDown (pauseKey)) 
+			{
+				pauseKeyDown = true;
+			}
+			else 
+			{
+				pauseKeyDown = false;
 			}
 		}
 	}

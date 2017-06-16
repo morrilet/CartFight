@@ -12,6 +12,8 @@ public class LobbyManager : MonoBehaviour
 	public string gameSceneName; //The scene to load when the game is started.
 	public string mainMenuName;
 	public Button readyButton; //The button that starts the game.
+	private bool prevReadyButtonInteract; //The last interactable state of the ready button. 
+	                                      //Used to select it on making it interactable.
 	public LobbyPanel[] lobbyPanels = new LobbyPanel[4]; //The panels that have joined the game. 
 														 //(Each panel represents one player)
 	private List<ControlScheme> availableControlSchemes; //The control schemes still available for use.
@@ -46,6 +48,8 @@ public class LobbyManager : MonoBehaviour
 
 		InitializeControlSchemes ();
 		InitializeAvailableControlSchemes ();
+
+		prevReadyButtonInteract = false;
 	}
 
 	void Update()
@@ -150,6 +154,17 @@ public class LobbyManager : MonoBehaviour
 		}
 		readyButton.interactable = (joinedPlayersCount >= 2) ? true : false;
 
+		//Select the ready button if it's interactable. Otherwise, select the back button.
+		//TODO: Make a bback button variable. It'll be quick, I promise.
+		if (readyButton.interactable && !prevReadyButtonInteract) 
+		{ 
+			readyButton.Select (); 
+		} 
+		else if (!readyButton.interactable && prevReadyButtonInteract) 
+		{ 
+			GameObject.Find ("Back_Button").GetComponent<Button>().Select(); 
+		}
+
 		//Update previous gamepad states.
 		for(int i = 0; i < gamepad_PrevStates.Length; i++)
 		{
@@ -163,6 +178,8 @@ public class LobbyManager : MonoBehaviour
 			debugOutput += " (" + availableControlSchemes[i].UpKey.ToString() + ") ";
 		}
 		//Debug.Log (debugOutput);
+
+		prevReadyButtonInteract = readyButton.interactable;
 	}
 
 	////////// Custom Methods //////////
@@ -221,10 +238,10 @@ public class LobbyManager : MonoBehaviour
 
 	private void InitializeControlSchemes() //Creates all of the control schemes.
 	{
-		wasd_Controls = new ControlScheme(KeyCode.W, KeyCode.S, KeyCode.D, KeyCode.A, KeyCode.Q);
-		ijkl_Controls = new ControlScheme(KeyCode.I, KeyCode.K, KeyCode.L, KeyCode.J, KeyCode.U);
+		wasd_Controls = new ControlScheme(KeyCode.W, KeyCode.S, KeyCode.D, KeyCode.A, KeyCode.Q, KeyCode.Escape);
+		ijkl_Controls = new ControlScheme(KeyCode.I, KeyCode.K, KeyCode.L, KeyCode.J, KeyCode.U, KeyCode.Delete);
 		arrow_Controls = new ControlScheme (KeyCode.UpArrow, KeyCode.DownArrow, 
-			KeyCode.RightArrow, KeyCode.LeftArrow, KeyCode.RightControl);
+			KeyCode.RightArrow, KeyCode.LeftArrow, KeyCode.RightControl, KeyCode.Delete);
 		gamepad1_Controls = new ControlScheme (PlayerIndex.One);
 		gamepad2_Controls = new ControlScheme (PlayerIndex.Two);
 		gamepad3_Controls = new ControlScheme (PlayerIndex.Three);

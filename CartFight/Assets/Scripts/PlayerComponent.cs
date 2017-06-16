@@ -45,7 +45,7 @@ public class PlayerComponent : PausableObject
 
 		if (this.transform.parent == null) //Abandoned cart.
 		{
-			if (IsPaused && !IsPausedPrev)
+			if (IsPaused && !IsPausedPrev) //Just paused...
 			{
 				storedAngularVelocity = this.GetComponent<Rigidbody2D> ().angularVelocity;
 				storedVelocity = this.GetComponent<Rigidbody2D> ().velocity;
@@ -53,7 +53,7 @@ public class PlayerComponent : PausableObject
 				this.GetComponent<Rigidbody2D> ().velocity = Vector2.zero;
 				this.GetComponent<Rigidbody2D> ().angularVelocity = 0.0f;
 			} 
-			else if (!IsPaused && IsPausedPrev)
+			else if (!IsPaused && IsPausedPrev) //Just unpaused...
 			{
 				this.GetComponent<Rigidbody2D> ().velocity = storedVelocity;
 				this.GetComponent<Rigidbody2D> ().angularVelocity = storedAngularVelocity;

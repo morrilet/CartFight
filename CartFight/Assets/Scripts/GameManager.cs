@@ -71,10 +71,14 @@ public class GameManager : MonoBehaviour
 		//Debug.Log (players[0].player.playerNumber + " : " + "points");
 
 		//Check for pause...
-		//Temporary until control schemes have their own pause keys.
-		if (Input.GetKeyDown (KeyCode.Escape) || Input.GetKeyDown (KeyCode.Delete)) 
+		for (int i = 0; i < players.Length; i++) 
 		{
-			SetPaused (!isPaused);
+			if (players [i].player.controlScheme.PauseKeyDown) 
+			{
+				//players [i].player.controlScheme.Update ();
+				SetPaused (!isPaused);
+				break;
+			}
 		}
 
 		if (isPaused)
