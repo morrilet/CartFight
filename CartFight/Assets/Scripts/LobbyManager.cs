@@ -158,7 +158,7 @@ public class LobbyManager : MonoBehaviour
 		//TODO: Make a bback button variable. It'll be quick, I promise.
 		if (readyButton.interactable && !prevReadyButtonInteract) 
 		{ 
-			readyButton.Select (); 
+			readyButton.Select ();
 		} 
 		else if (!readyButton.interactable && prevReadyButtonInteract) 
 		{ 

@@ -212,7 +212,10 @@ public class Player : PausableObject
 		for (int i = 0; i < carriedItems.Count; ++i) 
 		{
 			carriedItems [i].GetDropped ();
-			carriedItems [i].GetPlacedInCart (cartObj);
+			//Note that carts are ~3 units long, but items are ~1 unit so we use 2 here.
+			float offset = (2f / carriedItems.Count) * i;
+			offset = (carriedItems.Count > 1) ? offset - 0.5f : offset;
+			carriedItems [i].GetPlacedInCart (cartObj, offset);
 		}
 		carriedItems = new List<Item> ();
 	}

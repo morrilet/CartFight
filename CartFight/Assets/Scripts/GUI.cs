@@ -51,7 +51,7 @@ public class GUI : MonoBehaviour
 	////////// Custom Methods //////////
 	private void InitializeScoreTexts() //Sets up the score texts array.
 	{
-		GameManager.PlayerData[] players = GameManager.instance.getPlayers ();
+		GameManager.PlayerData[] players = GameManager.instance.Players ();
 		scoreTexts = new ScoreText[players.Length];
 		for (int i = 0; i < scoreTexts.Length; i++) 
 		{
@@ -79,7 +79,7 @@ public class GUI : MonoBehaviour
 
 	public void UpdateScoreTexts() //Updates the score texts to reflect the scores kept in GameManager.
 	{
-		GameManager.PlayerData[] players = GameManager.instance.getPlayers ();
+		GameManager.PlayerData[] players = GameManager.instance.Players ();
 		for (int i = 0; i < scoreTexts.Length; i++) 
 		{
 			Text tempText = scoreTexts [i].getText ();

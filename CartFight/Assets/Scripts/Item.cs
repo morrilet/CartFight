@@ -22,13 +22,12 @@ public class Item : PausableObject
 
 	public bool isPickedUp() { return pickedUp; }
 
-	public int pointValue; //Points to add to the player at an interval.
-	public float pointTime; //How long between adding points.
-	private float pointTimer;
+	private Vector3 startingScale; //The size of the item.
 
 	void Start()
 	{
 		GetComponent<SpriteRenderer> ().sprite = itemImages [(int) itemType];
+		startingScale = this.transform.localScale;
 	}
 
 	void Update()
@@ -36,21 +35,9 @@ public class Item : PausableObject
 		if (IsPaused)
 			return;
 
-		if (pickedUp)
+		if (pickedUp) 
 		{
 			FollowPlayer ();
-
-			if (pointTimer >= pointTime)
-			{
-				//Disabled for now to migrate this to game manager.
-				//GameManager.instance.AddPointsToPlayer (this.player, pointValue);
-				pointTimer = 0.0f;
-			}
-			pointTimer += Time.deltaTime;
-		} 
-		else 
-		{
-			pointTimer = 0.0f;
 		}
 	}
 
@@ -74,13 +61,14 @@ public class Item : PausableObject
 	}
 
 	//Get placed in a cart.
-	public void GetPlacedInCart(GameObject cartObj)
+	public void GetPlacedInCart(GameObject cartObj, float offset)
 	{
 		pickedUp = false;
 		player = null;
 
+		transform.localScale = startingScale * 0.75f; //Make the items a little smaller. Do this before parenting it.
 		transform.SetParent (cartObj.transform);
-		transform.position = cartObj.transform.position;
+		transform.position = cartObj.transform.position + (offset * cartObj.transform.up);
 
 		GetComponent<Collider2D> ().enabled = false;
 	}
@@ -92,6 +80,8 @@ public class Item : PausableObject
 		player = null;
 
 		transform.SetParent (null);
+		transform.localScale = startingScale; //Return the items to normal size.
+		transform.rotation = Quaternion.identity;
 
 		GetComponent<Collider2D> ().enabled = true;
 	}

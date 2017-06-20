@@ -64,7 +64,7 @@ public class ResultsMenu : MonoBehaviour
 	////////// Custom Methods //////////
 	private void InstantiateResultsPanels()
 	{
-		GameManager.PlayerData[] players = GameManager.instance.getPlayers ();
+		GameManager.PlayerData[] players = GameManager.instance.Players ();
 		List<GameManager.PlayerData> winners = GetWinners ();
 
 		resultsPanels = new ResultsPanel[players.Length];
@@ -114,7 +114,7 @@ public class ResultsMenu : MonoBehaviour
 	//Figure out which player(s) won the game. (There can technically be a tie.)
 	private List<GameManager.PlayerData> GetWinners()
 	{
-		GameManager.PlayerData[] players = GameManager.instance.getPlayers ();
+		GameManager.PlayerData[] players = GameManager.instance.Players ();
 		List<GameManager.PlayerData> winners = new List<GameManager.PlayerData>();
 
 		//Get the highest score. In a game with a set score limit, this will (obviously) be that score limit.
