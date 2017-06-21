@@ -77,7 +77,17 @@ public class SpawnPoint : MonoBehaviour
 	{
 		isAvailable = false;
 
-		yield return new WaitForSeconds (seconds);
+		//Basically making a pausable WaitForSeconds.
+		float timer = 0.0f;
+
+		while (timer <= seconds) 
+		{
+			if (!GameManager.instance.IsPaused) 
+			{
+				timer += Time.deltaTime;
+			}
+			yield return null;
+		}
 
 		obj.SetActive (true);
 		isAvailable = true;

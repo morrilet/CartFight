@@ -26,10 +26,18 @@ public class FadeOutAndDestroy : MonoBehaviour
 		coroutineStarted = true;
 		Color newColor = this.GetComponent<SpriteRenderer> ().color;
 
-		for (float i = 0.0f; i < duration; i += Time.deltaTime) 
+		float timer = 0.0f;
+
+		while (timer <= duration) 
 		{
-			newColor.a = 1 - (i / duration);
+			newColor.a = 1 - (timer / duration);
 			this.GetComponent<SpriteRenderer> ().color = newColor;
+
+			if (!GameManager.instance.IsPaused) 
+			{
+				timer += Time.deltaTime;
+			}
+
 			yield return null;
 		}
 

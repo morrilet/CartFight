@@ -18,11 +18,9 @@ public class GameManager : MonoBehaviour
 	public int scoreLimit = 100;
 	public int itemCount = 1;
 
-	[SerializeField]
 	private List<SpawnPoint> playerSpawnPoints; //The player spawn points on the map.
 	private List<SpawnPoint> availablePlayerSpawnPoints; //The player spawn points currently accepting respawns.
 
-	[SerializeField]
 	private List<SpawnPoint> itemSpawnPoints; //The spawn points for items.
 	private List<SpawnPoint> availableItemSpawnPoints;
 
@@ -36,6 +34,8 @@ public class GameManager : MonoBehaviour
 
 	public static GameManager instance;
 
+	private KeyCode[] pauseKeys; //A list of all the players pause keys. Used to let the manager pause the game.
+
 	///////// Custom Data //////////
 
 	public struct PlayerData
@@ -47,6 +47,7 @@ public class GameManager : MonoBehaviour
 	///////// Accessors //////////
 
 	public PlayerData[] Players() { return players; }
+	public bool IsPaused { get { return this.isPaused; } }
 
 	///////// Primary Methods //////////
 
@@ -64,7 +65,9 @@ public class GameManager : MonoBehaviour
 
 	void Start()
 	{
-		//TODO: Get the item/player spawn points procedurally with tags.
+		//Get the item/player spawn points procedurally.
+		GetPlayerSpawnPoints();
+		GetItemSpawnPoints ();
 
 		//At start, all player/item spawn points are available.
 		availablePlayerSpawnPoints = playerSpawnPoints;
@@ -81,17 +84,25 @@ public class GameManager : MonoBehaviour
 		//Spawn the items.
 		SpawnStartingItems (itemCount);
 			
+		//Grab all of the pause keys.
+		pauseKeys = new KeyCode[players.Length];
+		for (int i = 0; i < players.Length; i++) 
+		{
+			pauseKeys [i] = (players [i].player.controlScheme.PauseKey);
+		}
+
 		SetPaused (false);
 		AudioManager.instance.PlayMusic ("Videogame2");
 	}
 
 	void Update()
 	{
-		//Check if any players are trying to pause the game.
-		//TODO: Find a way to do this even for players who are dead.
-		for (int i = 0; i < players.Length; i++)
+		//Pause the game if any players pause button is down.
+		//This is handed here (not in ControlScheme.cs) because we want to
+		//be able to pause even when the player trying to pause is dead.
+		for (int i = 0; i < pauseKeys.Length; i++)
 		{
-			if (players [i].player.controlScheme.PauseKeyDown)
+			if (Input.GetKeyDown (pauseKeys [i])) 
 			{
 				SetPaused (!isPaused);
 				break;
@@ -200,6 +211,34 @@ public class GameManager : MonoBehaviour
 		return newPlayer;
 	}
 
+	private void GetPlayerSpawnPoints()
+	{
+		GameObject[] temp = GameObject.FindGameObjectsWithTag("SpawnPoint");
+		playerSpawnPoints = new List<SpawnPoint> ();
+		for (int i = 0; i < temp.Length; i++)
+		{
+			SpawnPoint spawnPoint = temp [i].GetComponent<SpawnPoint> ();
+			if (spawnPoint.isPlayerSpawn) 
+			{
+				playerSpawnPoints.Add (spawnPoint);
+			}
+		}
+	}
+
+	private void GetItemSpawnPoints()
+	{
+		GameObject[] temp = GameObject.FindGameObjectsWithTag("SpawnPoint");
+		itemSpawnPoints = new List<SpawnPoint> ();
+		for (int i = 0; i < temp.Length; i++)
+		{
+			SpawnPoint spawnPoint = temp [i].GetComponent<SpawnPoint> ();
+			if (!spawnPoint.isPlayerSpawn) 
+			{
+				itemSpawnPoints.Add (spawnPoint);
+			}
+		}
+	}
+
 	//Checks updates the list of spawn points available for player respawns.
 	private void UpdateAvailablePlayerSpawns()
 	{
@@ -273,9 +312,11 @@ public class GameManager : MonoBehaviour
 
 	///////// Gizmos //////////
 
-	//TODO: Automate the process of finding spawns. Don't rely on the list.
 	void OnDrawGizmos ()
 	{
+		GetPlayerSpawnPoints ();
+		GetItemSpawnPoints ();
+
 		//Draw player spawn points...
 		if (playerSpawnPoints.Count > 0) 
 		{
