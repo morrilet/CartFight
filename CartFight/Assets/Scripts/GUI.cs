@@ -6,10 +6,17 @@ public class GUI : MonoBehaviour
 {
 	////////// Variables //////////
 	private ScoreText[] scoreTexts;
-	public Text scoreTextPrefab;
+	[SerializeField]
+	private Text scoreTextPrefab;
+	[SerializeField]
+	private Text timeText;
+
+	////////// Accessors //////////
+	public ScoreText[] ScoreTexts { get { return this.scoreTexts; } }
+	public Text TimeText { get { return this.timeText; } }
 
 	////////// Custom Data Types //////////
-	private struct ScoreText
+	public struct ScoreText
 	{
 		private Text text;
 		private Player.PlayerNumber playerNumber;
@@ -96,5 +103,30 @@ public class GUI : MonoBehaviour
 
 			scoreTexts [i].setText (tempText);
 		}
+	}
+
+	public void FormatAndUpdateTimer(float seconds)
+	{
+		if (!timeText.IsActive ()) 
+		{
+			timeText.gameObject.SetActive (true);
+		}
+
+
+		string mins = Mathf.Floor (seconds / 60.0f).ToString ();
+		string secs = Mathf.Floor (seconds % 60.0f).ToString ();
+
+		if (seconds <= 0) 
+		{
+			mins = "0";
+			secs = "0";
+		}
+
+		if (int.Parse(secs) < 10) 
+		{
+			secs = "0" + secs;
+		}
+
+		timeText.text = mins + ":" + secs;
 	}
 }

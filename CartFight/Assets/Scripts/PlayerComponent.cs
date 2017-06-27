@@ -26,6 +26,9 @@ public class PlayerComponent : PausableObject
 	private List<Collider2D> touching; //The colliders we're currently touching.
 	public List<Collider2D> Touching { get { return this.touching; } }
 
+	public bool invulnerable;
+	public bool collidesWithObstacles;
+
 	//Used for pausing.
 	private Vector2 storedVelocity;
 	private float storedAngularVelocity;
@@ -70,16 +73,22 @@ public class PlayerComponent : PausableObject
 		{
 			if (OnHitCart != null) 
 			{
-				//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
-				OnHitCart(other);
+				if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable) 
+				{
+					//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
+					OnHitCart (other);
+				}
 			}
 		}
 		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer("Driver")) 
 		{
 			if (OnHitDriver != null) 
 			{
-				//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
-				OnHitDriver(other);
+				if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable) 
+				{
+					//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
+					OnHitDriver (other);
+				}
 			}
 
 			//Temporary!!! Hack-y solution. THIS IS CREATING ISSUES!!!
@@ -87,13 +96,16 @@ public class PlayerComponent : PausableObject
 			{
 				if (this.GetComponent<Rigidbody2D> ().velocity.magnitude >= 10.0f) 
 				{
-					other.transform.parent.GetComponent<Player> ().Die ();
+					if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable) 
+					{
+						other.transform.parent.GetComponent<Player> ().Die ();
+					}
 				}
 			}
 		}
 		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer("Obstacle")) 
 		{
-			if (OnHitObstacle != null) 
+			if (OnHitObstacle != null && collidesWithObstacles) 
 			{
 				//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
 				OnHitObstacle(other);
@@ -116,19 +128,25 @@ public class PlayerComponent : PausableObject
 		{
 			if (OnHitCart_Stay != null) 
 			{
-				OnHitCart_Stay(other);
+				if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable) 
+				{
+					OnHitCart_Stay (other);
+				}
 			}
 		}
 		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer("Driver")) 
 		{
 			if (OnHitDriver_Stay != null)
 			{
-				OnHitDriver_Stay(other);
+				if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable)
+				{
+					OnHitDriver_Stay (other);
+				}
 			}
 		}
 		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer("Obstacle")) 
 		{
-			if (OnHitObstacle_Stay != null) 
+			if (OnHitObstacle_Stay != null && collidesWithObstacles) 
 			{
 				OnHitObstacle_Stay(other);
 			}

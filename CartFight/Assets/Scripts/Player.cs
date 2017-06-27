@@ -22,7 +22,7 @@ public class Player : PausableObject
 	public float dampening; //How quickly we lose velocity.
 
 	private Vector2 velocity;
-	public Vector2 Velocity { get { return this.velocity; } }
+	public Vector2 Velocity { get { return this.velocity; } set { this.velocity = value; } }
 
 	//This is here if needed, but it'd be best to handle this in game manager.
 	//private int points;
@@ -43,6 +43,11 @@ public class Player : PausableObject
 	//private bool colliding = false; //Whether or not we're in any sort of collision right now.
 	private bool isAlive = true;
 
+	private bool invulnerable = true; //Invulnerable for a few seconds at the start.
+	public float invulnerableTime;
+	private float invulnerableTimer = 0.0f;
+	public bool Invulnerable { get { return this.invulnerable; } }
+
 	[HideInInspector]
 	public List<Item> carriedItems; //The items that the player is carrying.
 
@@ -54,7 +59,7 @@ public class Player : PausableObject
 	{
 		controlScheme.Start ();
 
-		velocity = Vector2.zero;
+		//velocity = Vector2.zero;
 		carriedItems = new List<Item> ();
 
 		//Get driver and cart components...
@@ -97,17 +102,30 @@ public class Player : PausableObject
 
 		HookupCartEvents ();
 		HookupDriverEvents ();
+
+		//This is later handled by the spawner.
+		SetInvulnerable (true);
+		EnableObstacleCollisions (false);
 	}
 
 	void Update()
 	{
 		controlScheme.Update ();
-		
+
 		if (IsPaused)
 			return;
 
 		if (isAlive) 
 		{
+			if (invulnerable && invulnerableTimer >= invulnerableTime) 
+			{
+				SetInvulnerable (false);
+			} 
+			else 
+			{
+				invulnerableTimer += Time.deltaTime;
+			}
+
 			if (cartObj != null) 
 			{
 				Move ();
@@ -172,14 +190,19 @@ public class Player : PausableObject
 		UnhookCartEvents ();
 
 		//Ignore collisions with items and the cart.
-		foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Item")) 
-		{
+		foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Item")) {
 			Physics2D.IgnoreCollision (cartObj.GetComponent<Collider2D> (), obj.GetComponent<Collider2D> (), true);
 		}
 		//Don't ignore collisions between the player and the cart.
-		Physics2D.IgnoreCollision (driverObj.GetComponent<Collider2D>(), cartObj.GetComponent<Collider2D>(), false);
+		Physics2D.IgnoreCollision (driverObj.GetComponent<Collider2D> (), cartObj.GetComponent<Collider2D> (), false);
 
-		//Empty our references.
+		//Handle invulnerability by removing it.
+		if (invulnerable) 
+		{
+			SetInvulnerable (false);
+		}
+
+		//Empty our refere	nces.
 		cartObj = null;
 		cart = null;
 	}
@@ -425,12 +448,6 @@ public class Player : PausableObject
 		}
 	}
 
-	void OnDrawGizmos()
-	{
-		//Gizmos.color = Color.green;
-		//Gizmos.DrawSphere (transform.position, 0.25f);
-	}
-
 	public void MoveWithoutCart()
 	{
 		//Pull the input from our desired control scheme.
@@ -645,6 +662,67 @@ public class Player : PausableObject
 		driver.OnHitCart_Stay -= HitCart_Stay;
 
 		driver.OnHitItem -= HitItem;
+	}
+
+	public void EnableObstacleCollisions(bool value)
+	{
+		driver.collidesWithObstacles = value;
+		cart.collidesWithObstacles = value;
+	}
+
+	private void SetInvulnerable(bool value)
+	{
+		invulnerable = value;
+		
+		if (value)
+		{
+			StartCoroutine (InvulnerableEffect_Coroutine (invulnerableTime, 10.0f));
+		}
+		else
+		{
+			StopCoroutine ("InvulnerableEffect_Coroutine");
+
+			Color cartColor = cartObj.GetComponent<SpriteRenderer> ().color;
+			Color driverColor = driverObj.GetComponent<SpriteRenderer> ().color;
+
+			cartColor.a = 1.0f;
+			driverColor.a = 1.0f;
+
+			cartObj.GetComponent<SpriteRenderer> ().color = cartColor;
+			driverObj.GetComponent<SpriteRenderer> ().color = driverColor;
+		}
+
+		cart.invulnerable = value;
+		driver.invulnerable = value;
+	}
+
+	private IEnumerator InvulnerableEffect_Coroutine(float duration, float period)
+	{
+		float timer = 0.0f;
+
+		Color newCartColor = cartObj.GetComponent<SpriteRenderer> ().color;
+		Color newDriverColor = driverObj.GetComponent<SpriteRenderer> ().color;
+
+		while (timer <= duration)
+		{
+			float angle = ((timer % 360.0f) * period);
+			float alpha = Mathf.Abs (Mathf.Sin (angle));
+
+			newCartColor.a = alpha;
+			newDriverColor.a = alpha;
+
+			cartObj.GetComponent<SpriteRenderer> ().color = newCartColor;
+			driverObj.GetComponent<SpriteRenderer> ().color = newDriverColor;
+
+			timer += Time.deltaTime;
+			yield return null;
+		}
+
+		newCartColor.a = 1.0f;
+		newDriverColor.a = 1.0f;
+
+		cartObj.GetComponent<SpriteRenderer> ().color = newCartColor;
+		driverObj.GetComponent<SpriteRenderer> ().color = newDriverColor;
 	}
 
 	//Draws a cross on a point for debugging.

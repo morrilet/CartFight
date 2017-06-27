@@ -15,8 +15,7 @@ public class GameManager : MonoBehaviour
 {
 	///////// Variables //////////
 
-	public int scoreLimit = 100;
-	public int itemCount = 1;
+	private float gameTimer;
 
 	private List<SpawnPoint> playerSpawnPoints; //The player spawn points on the map.
 	private List<SpawnPoint> availablePlayerSpawnPoints; //The player spawn points currently accepting respawns.
@@ -31,6 +30,7 @@ public class GameManager : MonoBehaviour
 	private float pointTimer = 0.0f;
 
 	private PlayerData[] players; //The active players in the scene.
+	private GameSettings settings; //The settings for the game.
 
 	public static GameManager instance;
 
@@ -44,9 +44,58 @@ public class GameManager : MonoBehaviour
 		public int points;
 	}
 
+	public struct GameSettings
+	{
+		private int timeLimit;
+		private int scoreLimit;
+		private int itemCount;
+
+		private bool useTimeLimit;
+		private bool useScoreLimit;
+
+		public enum GameModes
+		{
+			Score,
+			Time,
+			ScoreAndTime
+		};
+		private GameModes gameMode;
+
+		public int TimeLimit { get { return this.timeLimit; } set { timeLimit = value; 
+				if (timeLimit <= 0) { timeLimit = 0; } } }
+		public int ScoreLimit { get { return this.scoreLimit; } set { scoreLimit = value; 
+				if (scoreLimit <= 0) { scoreLimit = 0; } } }
+		public int ItemCount { get { return this.itemCount; } set { itemCount = value; 
+				if (itemCount <= 0) { itemCount = 0; } } }
+		public bool UseTimeLimit { get { return this.useTimeLimit; } }
+		public bool UseScoreLimit { get { return this.useScoreLimit; } }
+		public GameModes Mode { 
+			get { return this.gameMode; } 
+			set 
+			{ 
+				switch (value) 
+				{
+				case GameModes.Score:
+					useTimeLimit = false;
+					useScoreLimit = true;
+					break;
+				case GameModes.Time:
+					useTimeLimit = true;
+					useScoreLimit = false;
+					break;
+				case GameModes.ScoreAndTime:
+					useTimeLimit = true;
+					useScoreLimit = true;
+					break;
+				}
+				gameMode = value; 
+			}
+		}
+	}
+
 	///////// Accessors //////////
 
-	public PlayerData[] Players() { return players; }
+	public PlayerData[] Players() { return this.players; }
 	public bool IsPaused { get { return this.isPaused; } }
 
 	///////// Primary Methods //////////
@@ -65,6 +114,9 @@ public class GameManager : MonoBehaviour
 
 	void Start()
 	{
+		//Get the settings from the settings menu in the lobby.
+		settings = LobbyManager.GameSettings;
+
 		//Get the item/player spawn points procedurally.
 		GetPlayerSpawnPoints();
 		GetItemSpawnPoints ();
@@ -82,7 +134,7 @@ public class GameManager : MonoBehaviour
 		}
 
 		//Spawn the items.
-		SpawnStartingItems (itemCount);
+		SpawnStartingItems (settings.ItemCount);
 			
 		//Grab all of the pause keys.
 		pauseKeys = new KeyCode[players.Length];
@@ -123,17 +175,33 @@ public class GameManager : MonoBehaviour
 			}
 
 			//Check to see if anyone has won the game.
-			for (int i = 0; i < players.Length; i++)
+			for (int i = 0; i < players.Length; i++) 
 			{
-				if (players [i].points >= scoreLimit)
+				if (players [i].points >= settings.ScoreLimit) 
 				{
-					players [i].points = scoreLimit;
+					players [i].points = settings.ScoreLimit;
 					GUI.instance.UpdateScoreTexts ();
+					GUI.instance.TimeText.gameObject.SetActive (false);
 
 					SceneManager.LoadScene ("Results");
 				}
 			}
 		}
+
+		if (settings.UseTimeLimit) 
+		{
+			//If time is up, end the game.
+			if (gameTimer >= settings.TimeLimit) 
+			{
+				GUI.instance.UpdateScoreTexts ();
+				SceneManager.LoadScene ("Results");
+			}
+
+			gameTimer += Time.deltaTime;
+			GUI.instance.FormatAndUpdateTimer (settings.TimeLimit - gameTimer);
+		}
+
+		if (!settings.UseTimeLimit) { GUI.instance.TimeText.gameObject.SetActive (false); }
 
 		pointTimer += Time.deltaTime;
 	}
@@ -332,6 +400,8 @@ public class GameManager : MonoBehaviour
 					Gizmos.color = Color.red;
 					Gizmos.DrawWireSphere (playerSpawnPoints [i].transform.position, 0.25f);
 				}
+				Gizmos.DrawLine (playerSpawnPoints[i].transform.position, 
+					playerSpawnPoints[i].transform.position + playerSpawnPoints[i].transform.right);
 			}
 		}
 
