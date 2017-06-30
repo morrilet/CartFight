@@ -7,7 +7,7 @@ public class MenuDoor_Controller : MonoBehaviour
 	private AnimationCurve openCurve, closeCurve; //The curves to use for opening/closing the doors.
 	[SerializeField]
 	private float openDuration, closeDuration; //How long it takes to open/close the doors.
-	[SerializeField]
+	//[SerializeField]
 	private float openOffset; //How far to move the doors to open them. Close offset is the starting position.
 
 	[SerializeField]
@@ -26,6 +26,9 @@ public class MenuDoor_Controller : MonoBehaviour
 
 	private void Start()
 	{
+		//Set the offset to the width off the doors.
+		openOffset = doorRight.rect.width;
+
 		doorRight_StartPos = doorRight.anchoredPosition;
 		doorLeft_StartPos = doorLeft.anchoredPosition;
 

@@ -48,12 +48,20 @@ public class Player : PausableObject
 	private float invulnerableTimer = 0.0f;
 	public bool Invulnerable { get { return this.invulnerable; } }
 
+	//These help ensure that the collision handling is only performed once per frame.
+	private bool hitObstacleCalledThisFrame = false;
+	private bool hitCartCalledThisFrame = false;
+	private bool hitDriverCalledThisFrame = false;
+
 	[HideInInspector]
 	public List<Item> carriedItems; //The items that the player is carrying.
 
 	private Animator driverAnimator; //The animator of the driver component.
 
 	public Sprite[] cartImages;
+
+	private Coroutine invulnerableEffect;
+	private bool cartLerpEffectActive; //The carts lerp-to-position effect. 
 
 	public void Start()
 	{
@@ -121,7 +129,7 @@ public class Player : PausableObject
 			{
 				SetInvulnerable (false);
 			} 
-			else 
+			else if(!IsPaused)
 			{
 				invulnerableTimer += Time.deltaTime;
 			}
@@ -135,9 +143,9 @@ public class Player : PausableObject
 				MoveWithoutCart ();
 			}
 
-			if (controlScheme.ThrowKeyDown) 
+			if (controlScheme.ThrowKeyDown && driver.collidesWithObstacles)
 			{
-				if (cartObj != null) 
+				if (cartObj != null && !cartLerpEffectActive && cart.collidesWithObstacles) 
 				{
 					RemoveCart ((Vector3)velocity + (transform.right * 20f));
 				}
@@ -166,7 +174,7 @@ public class Player : PausableObject
 
 			//Continually place driver and cart at their starting local positions.
 			driverObj.transform.localPosition = driverLocalPosition;
-			if (cartObj != null) 
+			if (cartObj != null && !cartLerpEffectActive) 
 			{
 				cartObj.transform.localPosition = cartLocalPosition;
 				cartObj.transform.localRotation = cartLocalRotation;
@@ -178,6 +186,13 @@ public class Player : PausableObject
 		}
 	}
 
+	void LateUpdate()
+	{
+		hitObstacleCalledThisFrame = false;
+		hitCartCalledThisFrame = false;
+		hitDriverCalledThisFrame = false;
+	}
+
 	//Takes the cart off of the player object, making it a separate entity.
 	private void RemoveCart(Vector2 force)
 	{
@@ -187,7 +202,8 @@ public class Player : PausableObject
 		cartObj.transform.SetParent (null);
 		cartObj.GetComponent<Rigidbody2D> ().AddForce (force, ForceMode2D.Impulse);
 		PutItemsInCart (cartObj); //Place all carried items into the cart.
-		UnhookCartEvents ();
+		//UnhookCartEvents ();
+		cart.UnhookEvents();
 
 		//Ignore collisions with items and the cart.
 		foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Item")) {
@@ -219,6 +235,9 @@ public class Player : PausableObject
 		TakeItemsFromCart (cartObj); ///Get all the objects from the cart.
 		HookupCartEvents ();
 
+		//Lerp the cart to the right position.
+		StartCoroutine(LerpCart_Coroutine(cartLocalPosition, cartLocalRotation, 0.15f));
+
 		//Stop ignoring collisions between the cart and items.
 		foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Item"))
 		{
@@ -226,6 +245,30 @@ public class Player : PausableObject
 		}
 		//Ignore collisions between the player and the cart.
 		Physics2D.IgnoreCollision (driverObj.GetComponent<Collider2D> (), this.cartObj.GetComponent<Collider2D> ());
+	}
+
+	private IEnumerator LerpCart_Coroutine(Vector3 position, Quaternion rotation, float duration)
+	{
+		Vector3 startingPos = cartObj.transform.localPosition;
+		Quaternion startingRot = cartObj.transform.localRotation;
+		cartLerpEffectActive = true;
+
+		float timer = 0.0f;
+		while (timer < duration) 
+		{
+			Vector3 newPos = Vector3.Lerp (startingPos, position, timer / duration);
+			cartObj.transform.localPosition = newPos;
+
+			Quaternion newRot = Quaternion.Slerp (startingRot, rotation, timer / duration);
+			cartObj.transform.localRotation = newRot;
+
+			timer += Time.deltaTime;
+			yield return null;
+		}
+			
+		cartObj.transform.localPosition = position;
+		cartObj.transform.localRotation = rotation;
+		cartLerpEffectActive = false;
 	}
 
 	//Places our currently carried items into a cart.
@@ -273,7 +316,8 @@ public class Player : PausableObject
 
 		//Unhook the player from the player components...
 		//(Not doing this for cart because it's handled in remove cart.)
-		UnhookDriverEvents ();
+		//UnhookDriverEvents ();
+		driver.UnhookEvents();
 
 		//Remove all collected objects.
 		Debug.Log(carriedItems.Count);
@@ -317,6 +361,10 @@ public class Player : PausableObject
 	{
 		//Debug.Log ("~Event triggered :: Hit a cart~");
 
+		if (hitCartCalledThisFrame)
+			return;
+		hitCartCalledThisFrame = true;
+
 		//Push the other cart depending on whether or not it's being used by a player.
 		if (other.transform.parent != null) //Cart is in use...
 		{
@@ -339,22 +387,30 @@ public class Player : PausableObject
 
 	public void HitDriver(Collision2D other)
 	{
+		if (hitDriverCalledThisFrame)
+			return;
+		hitDriverCalledThisFrame = true;
+
 		if (driverObj == null || !other.transform.Equals (driverObj.transform))
 		{
-			Debug.Log ("~Event triggered :: Hit a driver~ Called By : " + transform.name);
+			Debug.Log ("~Event triggered :: Hit a driver~ Called By : " + playerNumber.ToString());
 			//Debug.Log(other.gameObject.name);
 			//Debug.DrawLine (other.contacts[0].point, other.gameObject.transform.position, Color.black);
 			float impactForce = 0.0f;
-			if (cartObj != null) 
+
+			//If we have a cart and the other object has a player parent.
+			if (cartObj != null && other.transform.parent != null && other.transform.parent.GetComponent<Player>() != null)
 			{
-				impactForce = (velocity - other.transform.parent.GetComponent<Player> ().velocity).magnitude;
+				impactForce = (velocity /*- other.transform.parent.GetComponent<Player> ().velocity*/).magnitude;
 				Debug.LogFormat ("Player Velocity :: {0} --- Cart Velocity :: {1}", 
 					velocity, cartObj.GetComponent<Rigidbody2D> ().velocity);
 			}
-			else
+			//Or if we don't have a cart and the other object has a player parent.
+			else if(other.transform.parent != null && other.transform.parent.GetComponent<Player>() != null)
 			{
-				impactForce = (cartObjPrev.GetComponent<Rigidbody2D> ().velocity - 
-					other.transform.parent.GetComponent<Player> ().velocity).magnitude;
+				impactForce = (cartObjPrev.GetComponent<Rigidbody2D> ().velocity.magnitude); //- 
+					//other.transform.parent.GetComponent<Player> ().velocity).magnitude;
+				
 				Debug.LogFormat ("Player Velocity :: {0} --- Cart Velocity :: {1}", 
 					velocity, cartObjPrev.GetComponent<Rigidbody2D> ().velocity);
 			}
@@ -380,9 +436,15 @@ public class Player : PausableObject
 		//Debug.Log ("~Event triggered :: Hit an obstacle~");
 		//colliding = true;
 
+		if (hitObstacleCalledThisFrame)
+			return;
+		hitObstacleCalledThisFrame = true;
+
 		//Reflect current velocity with low dampening.
 		//velocity = -velocity * (Mathf.Abs(Vector2.Dot(transform.right, other.contacts[0].normal)));
-		velocity = Vector2.Reflect (velocity, other.contacts [0].normal) * 0.75f;
+		velocity = Vector2.Reflect (velocity, other.contacts [0].normal) * .75f;
+		Debug.DrawRay (other.contacts [0].point, other.contacts [0].normal, Color.red);
+		Debug.DrawRay(transform.position, (Vector3)velocity / maxVelocity * 5f, Color.yellow);
 		//	* (1 - Mathf.Abs(Vector2.Dot(transform.right, other.contacts[0].normal)));
 
 		//HandleCollision (other, 1 << LayerMask.NameToLayer("Obstacle"));
@@ -411,6 +473,9 @@ public class Player : PausableObject
 	//4 :: Cast a ray from the outside point toward the object, along the normal.
 	//     This gets the point on the other objects edge that we want to move the 
 	//     intruding part to (called the nearest point.)
+	//4.5 :: Repeat steps 3 and 4 for the -normal, then choose the shortest distance
+	//	   to use for step 5. This ensures that we never choose to move the player
+	//	   to the other side of an objecct we're colliding with.
 	//5 :: Move the appropriate distance in the appropriate direction in order to
 	//     get outside of the object, and set velocity to that same value so that
 	//     the movement is less jerky.
@@ -419,27 +484,60 @@ public class Player : PausableObject
 		if (other.collider.bounds.Contains (other.contacts [0].point)) 
 		{
 			Vector2 normal = other.contacts [0].normal;
-			Vector2 pointOutsideCollider = (Vector2)other.contacts[0].point + (normal.normalized * 5);
 
-			Vector2 nearestPoint = Vector2.zero;
-			RaycastHit2D[] hits = Physics2D.RaycastAll(pointOutsideCollider, -normal, float.PositiveInfinity);
-			for (int i = 0; i < hits.Length; i++) 
+			//Test both the normal in both directions...
+			//First test it along the normal.
+			Vector2 pointOutsideCollider_1 = (Vector2)other.contacts[0].point + (normal.normalized * 5f);
+			Vector2 nearestPoint_1 = Vector2.zero;
+			RaycastHit2D[] hits_1 = Physics2D.RaycastAll (pointOutsideCollider_1, -normal, float.PositiveInfinity);
+			for (int i = 0; i < hits_1.Length; i++) 
 			{
-				if (hits [i].transform.Equals (other.transform)) 
+				if (hits_1 [i].transform.Equals (other.transform)) 
 				{
-					//DrawCross (hits [i].point, .25f, Color.green);
-					nearestPoint = hits[i].point;
+					nearestPoint_1 = hits_1 [i].point;
+				}
+			}
+			//Then test it along -normal.
+			Vector2 pointOutsideCollider_2 = (Vector2)other.contacts[0].point + (-normal.normalized * 5f);
+			Vector2 nearestPoint_2 = Vector2.zero;
+			RaycastHit2D[] hits_2 = Physics2D.RaycastAll (pointOutsideCollider_2, normal, float.PositiveInfinity);
+			for (int i = 0; i < hits_2.Length; i++) 
+			{
+				if (hits_2 [i].transform.Equals (other.transform)) 
+				{
+					nearestPoint_2 = hits_2 [i].point;
 				}
 			}
 
+			//See which point is nearest to the point of impact.
+			Vector2 nearestPoint = Vector2.zero;
+			Vector2 pointOutsideCollider = Vector2.zero;
+			if (Vector2.Distance (nearestPoint_1, other.contacts [0].point)
+			   < Vector2.Distance (nearestPoint_2, other.contacts [0].point)) 
+			{
+				nearestPoint = nearestPoint_1;
+				pointOutsideCollider = pointOutsideCollider_1;
+			}
+			else
+			{
+				nearestPoint = nearestPoint_2;
+				pointOutsideCollider = pointOutsideCollider_2;
+				normal *= -1;
+			}
+
 			//For debugging...
-			DrawCross (nearestPoint, .25f, Color.white);
+			DrawCross (nearestPoint, .3f, Color.white);
 			DrawCross (pointOutsideCollider, .25f, Color.red);
 			DrawCross (other.contacts [0].point, .25f, Color.blue);
 			Debug.DrawRay (other.contacts [0].point, normal);
 			//Debug.Break ();
+			if (Vector2.Distance (nearestPoint, other.contacts[0].point) > 1) 
+			{
+				Debug.Break();
+			}
 
 			float distance = Vector2.Distance (other.contacts [0].point, nearestPoint);
+			//Debug.Log (distance);
 
 			Vector3 offset = transform.position;
 			velocity = distance * normal.normalized;
@@ -489,7 +587,7 @@ public class Player : PausableObject
 			{
 				//Get direction of input...
 				Vector2 dir = (((Vector2)transform.position + input) - (Vector2)transform.position).normalized;
-				Debug.DrawLine (transform.position, transform.position + (Vector3)dir);
+				//Debug.DrawLine (transform.position, transform.position + (Vector3)dir);
 
 				//Point the character toward the direction with our turn speed(?)...
 				float angle = Mathf.Atan2 (dir.y, dir.x) * Mathf.Rad2Deg;
@@ -515,8 +613,8 @@ public class Player : PausableObject
 
 		ClampVelocity ();
 
-		Debug.DrawRay (transform.position, velocity.normalized, Color.red);
-		Debug.DrawRay (transform.position, transform.right * 2f, Color.yellow);
+		//Debug.DrawRay (transform.position, velocity.normalized, Color.red);
+		//Debug.DrawRay (transform.position, transform.right * 2f, Color.yellow);
 
 		transform.position = transform.position + (Vector3)velocity * Time.deltaTime;
 	}
@@ -558,8 +656,8 @@ public class Player : PausableObject
 
 		ClampVelocity ();
 
-		Debug.DrawRay (transform.position, velocity.normalized, Color.red);
-		Debug.DrawRay (transform.position, transform.right * 2f, Color.yellow);
+		//Debug.DrawRay (transform.position, velocity.normalized, Color.red);
+		//Debug.DrawRay (transform.position, transform.right * 2f, Color.yellow);
 			
 		//Redirect velocity towards forward vector. Checks what side of transform.right (yes, we use transform.up)
 		//velocity is on, then directs velocity toward transform.right based on the shortest path.
@@ -676,11 +774,20 @@ public class Player : PausableObject
 		
 		if (value)
 		{
-			StartCoroutine (InvulnerableEffect_Coroutine (invulnerableTime, 10.0f));
+			invulnerableEffect = StartCoroutine (InvulnerableEffect_Coroutine (invulnerableTime, 10.0f));
+			//cartObj.tag = "Invulnerable";
+			//driverObj.tag = "Invulnerable";
+			cartObj.layer = LayerMask.NameToLayer("Invulnerable");
+			driverObj.layer = LayerMask.NameToLayer ("Invulnerable");
 		}
 		else
 		{
-			StopCoroutine ("InvulnerableEffect_Coroutine");
+			//cartObj.tag = "Cart";
+			//driverObj.tag = "Driver";
+			cartObj.layer = LayerMask.NameToLayer("Cart");
+			driverObj.layer = LayerMask.NameToLayer ("Driver");
+
+			StopCoroutine (invulnerableEffect);
 
 			Color cartColor = cartObj.GetComponent<SpriteRenderer> ().color;
 			Color driverColor = driverObj.GetComponent<SpriteRenderer> ().color;
@@ -705,16 +812,21 @@ public class Player : PausableObject
 
 		while (timer <= duration)
 		{
-			float angle = ((timer % 360.0f) * period);
-			float alpha = Mathf.Abs (Mathf.Sin (angle));
+			if (!this.IsPaused) 
+			{
+				if (invulnerable) 
+				{
+					float angle = ((timer % 360.0f) * period);
+					float alpha = Mathf.Abs (Mathf.Sin (angle));
 
-			newCartColor.a = alpha;
-			newDriverColor.a = alpha;
+					newCartColor.a = alpha;
+					newDriverColor.a = alpha;
 
-			cartObj.GetComponent<SpriteRenderer> ().color = newCartColor;
-			driverObj.GetComponent<SpriteRenderer> ().color = newDriverColor;
-
-			timer += Time.deltaTime;
+					cartObj.GetComponent<SpriteRenderer> ().color = newCartColor;
+					driverObj.GetComponent<SpriteRenderer> ().color = newDriverColor;
+				}
+				timer += Time.deltaTime;
+			}
 			yield return null;
 		}
 

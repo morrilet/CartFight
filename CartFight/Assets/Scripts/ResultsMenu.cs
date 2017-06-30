@@ -19,6 +19,7 @@ public class ResultsMenu : MonoBehaviour
 		private Text playerTextObj;
 		private Text scoreTextObj;
 		private Image[] stars;
+		private Image outline;
 
 		public RectTransform RectTransformComponent { 
 			get { return this.rectTransform; } set { this.rectTransform = value; } }
@@ -39,6 +40,9 @@ public class ResultsMenu : MonoBehaviour
 			this.scoreTextObj = this.rectTransform.FindChild ("Score").GetComponent<Text> ();
 			this.scoreTextObj.text = this.score.ToString ();
 
+			this.outline = rectTransform.FindChild("Outline").GetComponent<Image>();
+			this.outline.color = new Color32((byte)50, (byte)50, (byte)50, (byte)0); //Gray.
+
 			stars = new Image[2];
 			this.stars[0] = rectTransform.FindChild("Star_1").GetComponent<Image>();
 			this.stars[1] = rectTransform.FindChild("Star_2").GetComponent<Image>();
@@ -51,6 +55,12 @@ public class ResultsMenu : MonoBehaviour
 			{
 				stars[i].gameObject.SetActive(active);
 			}
+		}
+
+		//Sets the color of the outline.
+		public void SetBorderColor(Color32 color)
+		{
+			outline.color = color;
 		}
 	}
 
@@ -76,6 +86,7 @@ public class ResultsMenu : MonoBehaviour
 			if (winners.Contains (players [i])) 
 			{
 				tempPanel.SetStarsActive (true);
+				tempPanel.SetBorderColor (new Color32 ((byte)205, (byte)190, (byte)115, (byte)255)); //Gold.
 			}
 			tempPanel.RectTransformComponent.SetParent (this.transform);
 			tempPanel.RectTransformComponent.localScale = new Vector3 (1.0f, 1.0f, 1.0f);
@@ -108,6 +119,30 @@ public class ResultsMenu : MonoBehaviour
 			temp.offsetMax = new Vector2 (125, -224);
 			temp.anchoredPosition = new Vector2 (startPos + (300 * i), 25);
 			resultsPanels [i].RectTransformComponent = temp;
+
+			switch(resultsPanels[i].PlayerNumber)
+			{
+			case Player.PlayerNumber.P1:
+				resultsPanels[i].RectTransformComponent.gameObject.GetComponent<Image>().color 
+					= new Color32((byte)138, (byte)69, (byte)69, (byte)255); //P1 red.
+				break;
+			case Player.PlayerNumber.P2:
+				resultsPanels[i].RectTransformComponent.gameObject.GetComponent<Image>().color 
+					= new Color32((byte)69, (byte)95, (byte)138, (byte)255); //P2 blue.
+				break;
+			case Player.PlayerNumber.P3:
+				resultsPanels[i].RectTransformComponent.gameObject.GetComponent<Image>().color 
+					= new Color32((byte)69, (byte)138, (byte)84, (byte)255); //P3 green.
+				break;
+			case Player.PlayerNumber.P4:
+				resultsPanels[i].RectTransformComponent.gameObject.GetComponent<Image>().color 
+					= new Color32((byte)138, (byte)69, (byte)126, (byte)255); //P4 purple.
+				break;
+			default:
+				resultsPanels[i].RectTransformComponent.gameObject.GetComponent<Image>().color 
+					= new Color32((byte)50, (byte)50, (byte)50, (byte)255); //Default gray.
+				break;
+			}
 		}
 	}
 

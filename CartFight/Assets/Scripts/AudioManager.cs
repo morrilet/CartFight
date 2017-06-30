@@ -8,7 +8,8 @@ public class AudioManager : MonoBehaviour
 	public static AudioManager instance;
 	public AudioClip[] effects;
 	public AudioClip[] music;
-	private AudioSource source;
+	private AudioSource effectSource;
+	private AudioSource musicSource;
 
 	////////// Primary Methods //////////
 	void Awake()
@@ -25,7 +26,8 @@ public class AudioManager : MonoBehaviour
 
 	void Start()
 	{
-		source = this.GetComponent<AudioSource> ();
+		effectSource = this.GetComponents<AudioSource> () [0];
+		musicSource = this.GetComponents<AudioSource> () [1];
 
 		//Remove all other audio listeners from the scene.
 		foreach (AudioListener listener in GameObject.FindObjectsOfType<AudioListener>()) 
@@ -43,7 +45,7 @@ public class AudioManager : MonoBehaviour
 		AudioClip clip = GetClipFromArray (effectName, effects);
 		if (clip != null) 
 		{
-			source.PlayOneShot (clip);
+			effectSource.PlayOneShot (clip);
 		}
 	}
 
@@ -52,9 +54,9 @@ public class AudioManager : MonoBehaviour
 		AudioClip clip = GetClipFromArray (musicName, music);
 		if (clip != null) 
 		{
-			source.clip = clip;
-			source.loop = true;
-			source.Play ();
+			musicSource.clip = clip;
+			musicSource.loop = true;
+			musicSource.Play ();
 		}
 	}
 

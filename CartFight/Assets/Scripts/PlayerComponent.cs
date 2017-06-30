@@ -48,6 +48,9 @@ public class PlayerComponent : PausableObject
 
 		if (this.transform.parent == null) //Abandoned cart.
 		{
+			//Ignore collisions with anything that's invulnerable.
+			//PlayerComponent[] invulnerableComponents = GameObject.fin
+
 			if (IsPaused && !IsPausedPrev) //Just paused...
 			{
 				storedAngularVelocity = this.GetComponent<Rigidbody2D> ().angularVelocity;
@@ -64,9 +67,18 @@ public class PlayerComponent : PausableObject
 		}
 	}
 
-	void OnCollisionEnter2D(Collision2D other)
+	IEnumerator OnCollisionEnter2D(Collision2D other)
 	{
 		touching.Add (other.collider);
+
+		//This is a good idea I think, try to keep it in with the upcoming refactoring. (6/27/17)
+		if (other.gameObject.tag == "Invulnerable")
+			yield return null;
+
+		if (other.contacts.Length == 0)
+			yield return null;
+
+		//yield return new WaitForEndOfFrame ();
 
 		//Bit shift operator.
 		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer("Cart")) 
@@ -75,7 +87,7 @@ public class PlayerComponent : PausableObject
 			{
 				if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable) 
 				{
-					//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
+					Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
 					OnHitCart (other);
 				}
 			}
@@ -92,13 +104,18 @@ public class PlayerComponent : PausableObject
 			}
 
 			//Temporary!!! Hack-y solution. THIS IS CREATING ISSUES!!!
-			if (this.transform.parent == null && this.tag == "Cart") //Abandoned cart
+			if (this.transform.parent == null && this.tag == "Cart") //If we're an abandoned cart
 			{
-				if (this.GetComponent<Rigidbody2D> ().velocity.magnitude >= 10.0f) 
+				if (this.GetComponent<Rigidbody2D> ().velocity.magnitude >= 10.0f) //If we're going fast enough
 				{
-					if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable) 
+					//If the other object has a player (not abandoned)
+					if (other.transform.parent != null && other.transform.parent.GetComponent<Player> () != null)
 					{
-						other.transform.parent.GetComponent<Player> ().Die ();
+						//If neither of us are invulnerable
+						if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable) 
+						{
+							other.transform.parent.GetComponent<Player> ().Die ();
+						}
 					}
 				}
 			}
@@ -119,10 +136,17 @@ public class PlayerComponent : PausableObject
 				OnHitItem (other);
 			}
 		}
+
+		yield return new WaitForEndOfFrame ();
 	}
 
-	void OnCollisionStay2D(Collision2D other)
+	IEnumerator OnCollisionStay2D(Collision2D other)
 	{
+		if (other.gameObject.tag == "Invulnerable")
+			yield return null;
+
+		//yield return new WaitForFixedUpdate ();
+
 		//Bit shift operator.
 		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer("Cart")) 
 		{
@@ -130,7 +154,10 @@ public class PlayerComponent : PausableObject
 			{
 				if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable) 
 				{
-					OnHitCart_Stay (other);
+					if (transform.parent != null) //If we're not an abandoned cart.
+					{
+						OnHitCart_Stay (other);
+					}
 				}
 			}
 		}
@@ -140,7 +167,10 @@ public class PlayerComponent : PausableObject
 			{
 				if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable)
 				{
-					OnHitDriver_Stay (other);
+					if (transform.parent != null) //If we're not an abandoned cart.
+					{
+						OnHitDriver_Stay (other);
+					}
 				}
 			}
 		}
@@ -148,7 +178,10 @@ public class PlayerComponent : PausableObject
 		{
 			if (OnHitObstacle_Stay != null && collidesWithObstacles) 
 			{
-				OnHitObstacle_Stay(other);
+				if (transform.parent != null) //If we're not an abandoned cart.
+				{
+					OnHitObstacle_Stay (other);
+				}
 			}
 		}
 	}
@@ -156,5 +189,16 @@ public class PlayerComponent : PausableObject
 	void OnCollisionExit2D(Collision2D other)
 	{
 		touching.Remove (other.collider);
+	}
+
+	public void UnhookEvents()
+	{
+		OnHitCart = null;
+		OnHitDriver = null;
+		OnHitObstacle = null;
+
+		OnHitCart_Stay = null;
+		OnHitDriver_Stay = null;
+		OnHitObstacle_Stay = null;
 	}
 }

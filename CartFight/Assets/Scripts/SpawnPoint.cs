@@ -25,6 +25,22 @@ public class SpawnPoint : MonoBehaviour
 		}
 	}
 
+
+	private void Update()
+	{
+		if (isPlayerSpawn) 
+		{
+			if (GameManager.instance.IsPaused && !isAvailable ) 
+			{
+				doorsObject.GetComponent<Animator> ().speed = 0.0f;
+			} 
+			else if (doorsObject.GetComponent<Animator> ().speed == 0.0f) 
+			{
+				doorsObject.GetComponent<Animator> ().speed = 1.0f;
+			}
+		}
+	}
+
 	public Item SpawnItem(Item.ItemType itemType, float seconds)
 	{
 		if (isAvailable && !isPlayerSpawn)
@@ -132,11 +148,12 @@ public class SpawnPoint : MonoBehaviour
 		doorsObject.GetComponent<Animator> ().SetTrigger ("Activated");
 
 		yield return PausableWaitForSeconds_Coroutine (1.0f);
-
-		player.EnableObstacleCollisions (true); //Just in case it hasn't already been done.
 		doorsObject.SetActive (false);
 
 		isAvailable = true;
+
+		player.EnableObstacleCollisions (true); //Just in case it hasn't already been done.
+		Debug.Log ("HERE");
 	}
 
 	private IEnumerator SafezoneHandler_Coroutine(Player player)

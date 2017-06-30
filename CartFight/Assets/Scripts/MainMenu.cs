@@ -6,6 +6,7 @@ using System.Collections;
 public class MainMenu : MonoBehaviour 
 {
 	private MenuDoor_Controller doorController;
+	private HintText_Controller hintTextController;
 	private static bool sceneLoadedBefore = false; //Whether or not we've loaded this scene before.
 
 	private Button playButton;
@@ -14,6 +15,7 @@ public class MainMenu : MonoBehaviour
 	public void Start()
 	{
 		doorController = transform.GetComponentInChildren<MenuDoor_Controller> ();
+		hintTextController = transform.GetComponentInChildren<HintText_Controller> ();
 
 		playButton = GameObject.Find ("Play").GetComponent<Button> ();
 		quitButton = GameObject.Find ("Quit").GetComponent<Button> ();
@@ -57,7 +59,20 @@ public class MainMenu : MonoBehaviour
 		playButton.interactable = false;
 		quitButton.interactable = false;
 
-		yield return new WaitForSeconds (.7f);
+		Coroutine hintTextCoroutine = StartCoroutine (StartHintText_Coroutine (1.5f));
+
+		//yield return new WaitForSeconds (.7f);
+		while (!Input.anyKeyDown) 
+		{
+			yield return null;
+		}
+
+		if (hintTextCoroutine != null) 
+		{
+			StopCoroutine (hintTextCoroutine);
+		}
+		hintTextController.FadeOut (0.35f);
+
 		doorController.OpenDoors ();
 		while (doorController.DoorsOpen != true) 
 		{
@@ -68,5 +83,16 @@ public class MainMenu : MonoBehaviour
 		quitButton.interactable = true;
 
 		playButton.Select ();
+	}
+
+	private IEnumerator StartHintText_Coroutine(float entryDelay)
+	{
+		float timer = 0.0f;
+		while (timer < entryDelay) 
+		{
+			timer += Time.deltaTime;
+			yield return null;
+		}
+		hintTextController.FadeIn (.75f);
 	}
 }

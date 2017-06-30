@@ -142,6 +142,12 @@ public class GameManager : MonoBehaviour
 		{
 			pauseKeys [i] = (players [i].player.controlScheme.PauseKey);
 		}
+			
+		//Ignore collisions with invulnerable objects. This is because abandoned carts use the
+		//built in physics system and not our custom event handlers, so we need to stop collisions
+		//within the built in physics system. Blah. That's a nuisance. (6/17/17)
+		Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("Cart"), LayerMask.NameToLayer("Invulnerable"));
+		Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("Driver"), LayerMask.NameToLayer("Invulnerable"));
 
 		SetPaused (false);
 		AudioManager.instance.PlayMusic ("Videogame2");
@@ -374,8 +380,15 @@ public class GameManager : MonoBehaviour
 			pauseObjs [i].setPaused (isPaused);
 		}
 
-		//Set the pause menu to an apropriate state.
-		pauseMenu.gameObject.SetActive(isPaused);
+		//Pause or unpause the pause menu appropriately.
+		if (isPaused) 
+		{
+			pauseMenu.GetComponent<PauseMenu> ().OpenMenu ();
+		} 
+		else 
+		{
+			pauseMenu.GetComponent<PauseMenu> ().CloseMenu ();
+		}
 	}
 
 	///////// Gizmos //////////
