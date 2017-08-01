@@ -11,17 +11,28 @@ public class AudioManager : MonoBehaviour
 	private AudioSource effectSource;
 	private AudioSource musicSource;
 
+	private static float effectVolume = 1.0f, musicVolume = 1.0f;
+	public float EffectVolume { get { return effectVolume; } set { effectVolume = value; } }
+	public float MusicVolume { get { return musicVolume; } set { musicVolume = value; } }
+
 	////////// Primary Methods //////////
 	void Awake()
 	{
+		DontDestroyOnLoad (this.gameObject);
+
 		if (instance != null && instance != this) 
 		{
-			Destroy (this.gameObject);
+			//Debug.Log ("INST_MVOL: " + MusicVolume);
+			Destroy (instance.gameObject);
+			instance = this;
 		}
 		else
 		{
 			instance = this;
 		}
+
+		Start ();
+		//Debug.Log ("THIS_MVOL: " + MusicVolume);
 	}
 
 	void Start()
@@ -36,6 +47,18 @@ public class AudioManager : MonoBehaviour
 			{
 				Destroy (listener);
 			}
+		}
+	}
+
+	void Update()
+	{
+		if (effectSource.volume != effectVolume) 
+		{
+			effectSource.volume = effectVolume;
+		}
+		if (musicSource.volume != musicVolume) 
+		{
+			musicSource.volume = musicVolume;
 		}
 	}
 

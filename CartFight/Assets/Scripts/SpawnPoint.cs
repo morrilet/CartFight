@@ -153,7 +153,7 @@ public class SpawnPoint : MonoBehaviour
 		isAvailable = true;
 
 		player.EnableObstacleCollisions (true); //Just in case it hasn't already been done.
-		Debug.Log ("HERE");
+		//Debug.Log ("HERE");
 	}
 
 	private IEnumerator SafezoneHandler_Coroutine(Player player)

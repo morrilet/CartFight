@@ -307,6 +307,30 @@ public class Player : PausableObject
 
 		carriedItems.Add (item);
 
+		//Particles.
+		Color32 particleColor = new Color32((byte)255, (byte)255, (byte)255, (byte)255);
+		switch (playerNumber) 
+		{
+		case PlayerNumber.P1:
+			particleColor = new Color32 ((byte)138, (byte)69, (byte)69, (byte)255);
+			break;
+		case PlayerNumber.P2:
+			particleColor = new Color32 ((byte)69, (byte)95, (byte)138, (byte)255);
+			break;
+		case PlayerNumber.P3:
+			particleColor = new Color32 ((byte)69, (byte)138, (byte)84, (byte)255);
+			break;
+		case PlayerNumber.P4:
+			particleColor = new Color32 ((byte)138, (byte)69, (byte)126, (byte)255);
+			break;
+		default:
+			Debug.Log ("Item grabbed by invalid player number!");
+			break;
+		}
+		ParticleManager.instance.CreateParticles ("PickupParticles",
+			item.transform.position, Quaternion.identity, (Color)particleColor);
+
+		//Audio.
 		AudioManager.instance.PlayEffect ("PickupFood");
 	}
 
@@ -314,16 +338,19 @@ public class Player : PausableObject
 	{
 		isAlive = false;
 
+		//Moderate screen shake.
+		Camera_Controller.instance.Shake(.35f, .5f);
+
 		//Unhook the player from the player components...
 		//(Not doing this for cart because it's handled in remove cart.)
 		//UnhookDriverEvents ();
 		driver.UnhookEvents();
 
 		//Remove all collected objects.
-		Debug.Log(carriedItems.Count);
+		//Debug.Log(carriedItems.Count);
 		for (int i = 0; i < carriedItems.Count; i++)
 		{
-			Debug.Log (carriedItems[i].gameObject.name);
+			//Debug.Log (carriedItems[i].gameObject.name);
 			carriedItems [i].GetDropped ();
 		}
 		carriedItems.RemoveRange (0, carriedItems.Count);
@@ -333,16 +360,19 @@ public class Player : PausableObject
 		{
 			RemoveCart (transform.right * 5.0f);
 		}
+			
+		//Blood effects. Removed because I didn't think they fit the theme.
+		//ParticleManager.instance.CreateParticles("Blood", driverObj.transform.position, Quaternion.identity);
+		//ParticleManager.instance.CreateDecal("BloodDecal", this.transform.position, this.transform.rotation);
 
 		//Remove the driver and start the death animation. Driver is destroyed after this.
 		driverObj.GetComponent<Animator> ().SetBool ("isAlive", false);
 		driverObj.GetComponent<Animator> ().speed = 1.0f;
-		driverObj.GetComponent<SpriteRenderer> ().sortingOrder = -1;
+		driverObj.GetComponent<SpriteRenderer>().sortingLayerName = "DeadPlayers";
+		driverObj.GetComponent<SpriteRenderer> ().sortingOrder = 0;
 		driverObj.AddComponent<FadeOutAndDestroy> ();
 		driverObj.GetComponent<Collider2D> ().enabled = false;
 		driverObj.transform.SetParent (null);
-
-		driverObj.GetComponent<SpriteRenderer>().sortingLayerName = "DeadPlayers";
 
 		Destroy (this.gameObject);
 		//Destroy (this.gameObject, 3f);
@@ -350,9 +380,10 @@ public class Player : PausableObject
 
 	public void HitItem(Collision2D other)
 	{
-		Debug.Log ("Hit item.");
+		//Debug.Log ("Hit item.");
 		if(!other.gameObject.GetComponent<Item>().isPickedUp() && this.cartObj != null)
 		{
+			//Pickup the item.
 			PickupItem (other.gameObject.GetComponent<Item> ());
 		}
 	}
@@ -380,9 +411,44 @@ public class Player : PausableObject
 		{
 			other.gameObject.GetComponent<Rigidbody2D> ().AddForceAtPosition (
 				velocity / 2.0f, other.contacts [0].point, ForceMode2D.Impulse);
+
+			//If we hit it hard enough, shake the items out.
+			if (velocity.magnitude >= (maxVelocity / 10f) * 7.5f) //75% of max speed or higher.
+			{
+				//Remove the childed items.
+				Item[] cartItems = other.gameObject.GetComponentsInChildren<Item> ();
+				for (int i = 0; i < cartItems.Length; i++) 
+				{
+					cartItems [i].GetRemovedFromCart ();
+				}
+			}
 		}
 
 		AudioManager.instance.PlayEffect ("CartHit");
+
+		//Effect stuff.
+		if (velocity.magnitude >= (maxVelocity / 10f) * 7.5f) //75% of max speed or higher.
+		{
+			ParticleManager.instance.CreateSparksAtCollision (other);
+
+			if (other.transform.parent != null) //Other cart isn't abandoned.
+			{
+				//Slight screen shake.
+				Camera_Controller.instance.Shake(.2f, .35f);
+			}
+			else
+			{
+				//Minimal screen shake, unless there are items in the cart.
+				if (other.gameObject.GetComponentInChildren<Item> () != null) 
+				{
+					Camera_Controller.instance.Shake (.15f, .25f);
+				}
+				else
+				{
+					Camera_Controller.instance.Shake (.1f, .1f);
+				}
+			}
+		}
 	}
 
 	public void HitDriver(Collision2D other)
@@ -393,7 +459,7 @@ public class Player : PausableObject
 
 		if (driverObj == null || !other.transform.Equals (driverObj.transform))
 		{
-			Debug.Log ("~Event triggered :: Hit a driver~ Called By : " + playerNumber.ToString());
+			//Debug.Log ("~Event triggered :: Hit a driver~ Called By : " + playerNumber.ToString());
 			//Debug.Log(other.gameObject.name);
 			//Debug.DrawLine (other.contacts[0].point, other.gameObject.transform.position, Color.black);
 			float impactForce = 0.0f;
@@ -533,6 +599,7 @@ public class Player : PausableObject
 			//Debug.Break ();
 			if (Vector2.Distance (nearestPoint, other.contacts[0].point) > 1) 
 			{
+				nearestPoint = (nearestPoint - other.contacts [0].point).normalized * 1f;
 				Debug.Break();
 			}
 
@@ -558,10 +625,12 @@ public class Player : PausableObject
 		}
 
 		//Debugging...
+		/*
 		if (controlScheme.IsGamePad) 
 		{
 			Debug.Log ("Controller inputs... " + input);
 		}
+		*/
 
 		//Keyboard...
 		if(!controlScheme.IsGamePad)

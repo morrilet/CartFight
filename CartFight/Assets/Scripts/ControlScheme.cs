@@ -41,6 +41,8 @@ public class ControlScheme
 	public bool ThrowKeyDown { get { return this.throwKeyDown; } }
 	public bool PauseKeyDown { get { return this.pauseKeyDown; } }
 
+	public PlayerIndex PIndex { get { return this.playerIndex; } }
+
 	public GamepadControlStick GamepadControls
 	{ 
 		get { return this.gamepadControlStick; } 
@@ -109,8 +111,12 @@ public class ControlScheme
 					Debug.Log ("Invalid GamepadControlStick!");
 					break;
 			}
+				
+			//Use raw 0-1 values, nothing in between.
+			int currentTriggerRight = Mathf.CeilToInt (state.Triggers.Right);
+			int prevTriggerRight = Mathf.CeilToInt (prevState.Triggers.Right);
 
-			throwKeyDown = ((state.Triggers.Right == 1) && (prevState.Triggers.Right == 0));
+			throwKeyDown = ((currentTriggerRight == 1) && (prevTriggerRight == 0));
 			pauseKeyDown = ((state.Buttons.Start == ButtonState.Pressed) 
 				&& (prevState.Buttons.Start == ButtonState.Released));
 

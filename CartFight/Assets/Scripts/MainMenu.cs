@@ -10,7 +10,9 @@ public class MainMenu : MonoBehaviour
 	private static bool sceneLoadedBefore = false; //Whether or not we've loaded this scene before.
 
 	private Button playButton;
+	private Button howToPlayButton;
 	private Button quitButton;
+	private Button settingsButton;
 
 	public void Start()
 	{
@@ -18,7 +20,9 @@ public class MainMenu : MonoBehaviour
 		hintTextController = transform.GetComponentInChildren<HintText_Controller> ();
 
 		playButton = GameObject.Find ("Play").GetComponent<Button> ();
+		howToPlayButton = GameObject.Find ("HowToPlay").GetComponent<Button> ();
 		quitButton = GameObject.Find ("Quit").GetComponent<Button> ();
+		settingsButton = GameObject.Find ("Settings").GetComponent<Button> ();
 
 		if (!sceneLoadedBefore) 
 		{
@@ -31,9 +35,19 @@ public class MainMenu : MonoBehaviour
 		}
 	}
 
+	public void Settings()
+	{
+		SceneManager.LoadScene ("SettingsMenu");
+	}
+
 	public void Play()
 	{
 		SceneManager.LoadScene ("Lobby");
+	}
+
+	public void HowToPlay()
+	{
+		SceneManager.LoadScene ("HowToPlay");
 	}
 
 	public void Quit()
@@ -43,6 +57,11 @@ public class MainMenu : MonoBehaviour
 
 	private IEnumerator Quit_Coroutine()
 	{
+		playButton.interactable = false;
+		howToPlayButton.interactable = false;
+		quitButton.interactable = false;
+		settingsButton.interactable = false;
+
 		doorController.gameObject.SetActive (true);
 
 		doorController.CloseDoors ();
@@ -57,7 +76,9 @@ public class MainMenu : MonoBehaviour
 	private IEnumerator StartScene_Coroutine()
 	{
 		playButton.interactable = false;
+		howToPlayButton.interactable = false;
 		quitButton.interactable = false;
+		settingsButton.interactable = false;
 
 		Coroutine hintTextCoroutine = StartCoroutine (StartHintText_Coroutine (1.5f));
 
@@ -80,7 +101,9 @@ public class MainMenu : MonoBehaviour
 		}
 
 		playButton.interactable = true;
+		howToPlayButton.interactable = true;
 		quitButton.interactable = true;
+		settingsButton.interactable = true;
 
 		playButton.Select ();
 	}

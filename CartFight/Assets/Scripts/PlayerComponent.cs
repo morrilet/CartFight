@@ -87,7 +87,7 @@ public class PlayerComponent : PausableObject
 			{
 				if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable) 
 				{
-					Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
+					//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
 					OnHitCart (other);
 				}
 			}
@@ -124,6 +124,19 @@ public class PlayerComponent : PausableObject
 		{
 			if (OnHitObstacle != null && collidesWithObstacles) 
 			{
+				//Spark and shake effects if we're a cart.
+				if (this.tag == "Cart") 
+				{
+					//If we're attached to a player and going more than half of our max speed...
+					if (this.transform.parent != null 
+						&& this.transform.parent.GetComponent<Player>().Velocity.magnitude 
+						>= this.transform.parent.GetComponent<Player>().maxVelocity / 2f) 
+					{
+						ParticleManager.instance.CreateSparksAtCollision (other);
+						Camera_Controller.instance.Shake (.1f, .075f);
+					}
+				}
+
 				//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");
 				OnHitObstacle(other);
 			}

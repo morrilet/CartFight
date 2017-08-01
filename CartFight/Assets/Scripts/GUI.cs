@@ -10,6 +10,7 @@ public class GUI : MonoBehaviour
 	private Text scoreTextPrefab;
 	[SerializeField]
 	private Text timeText;
+	private bool timeStressEffectActive = false;
 
 	////////// Accessors //////////
 	public ScoreText[] ScoreTexts { get { return this.scoreTexts; } }
@@ -20,16 +21,21 @@ public class GUI : MonoBehaviour
 	{
 		private Text text;
 		private Player.PlayerNumber playerNumber;
+		private bool stressEffectActive;
 
 		public ScoreText(Text text, Player.PlayerNumber playerNumber)
 		{
 			this.text = text;
 			this.playerNumber = playerNumber;
+			this.stressEffectActive = false;
 		}
 
 		public Text getText() { return this.text; }
 		public void setText(Text text) { this.text = text; }
 		public Player.PlayerNumber getPlayerNumber() { return this.playerNumber; }
+		public bool StressEffectActive { 
+			get { return this.stressEffectActive; } 
+			set { this.stressEffectActive = value; } }
 	}
 		
 	////////// Singleton //////////
@@ -48,7 +54,7 @@ public class GUI : MonoBehaviour
 
 
 	////////// Primary Methods //////////
-	void Start()
+	public void Start()
 	{
 		InitializeScoreTexts ();
 		FormatScoreTexts ();
@@ -98,6 +104,15 @@ public class GUI : MonoBehaviour
 				{
 					tempText.text = scoreTexts [i].getPlayerNumber ().ToString ()
 					+ " :: " + players [j].points;
+
+					//If a player has 90% or more of the score limit, 
+					//apply a stress effect to their score text.
+					if ((float)(players [j].points / (float)GameManager.instance.Settings.ScoreLimit) >= 0.9f
+						&& !scoreTexts [i].StressEffectActive && GameManager.instance.Settings.UseScoreLimit) 
+					{
+						ApplyStressEffect (scoreTexts [i].getText ());
+						scoreTexts [j].StressEffectActive = true;
+					}
 				}
 			}
 
@@ -112,11 +127,19 @@ public class GUI : MonoBehaviour
 			timeText.gameObject.SetActive (true);
 		}
 
+		//If we're 90% or more through the time limit, 
+		//apply the stress effect to the time text.
+		if (seconds <= 10f
+			&& !timeStressEffectActive) 
+		{
+			ApplyStressEffect (timeText);
+			timeStressEffectActive = true;
+		}
 
 		string mins = Mathf.Floor (seconds / 60.0f).ToString ();
 		string secs = Mathf.Floor (seconds % 60.0f).ToString ();
 
-		if (seconds <= 0) 
+		if (seconds <= 0.0f) 
 		{
 			mins = "0";
 			secs = "0";
@@ -128,5 +151,51 @@ public class GUI : MonoBehaviour
 		}
 
 		timeText.text = mins + ":" + secs;
+	}
+
+	private void ApplyStressEffect(Text text)
+	{
+		Debug.Log ("Here!");
+		StartCoroutine (StressEffect_Coroutine (text));
+	}
+
+	//Flashes the input text red and scales it along a sine wave.
+	private IEnumerator StressEffect_Coroutine(Text text)
+	{
+		Color startColor = text.color;
+		Vector3 startScale = text.gameObject.GetComponent<RectTransform> ().localScale;
+
+		Color stressColor = new Color(1, 0, 0, 1);
+		Vector3 stressScale = startScale * 1.25f;
+
+		float t = 0.0f; //Timer, AKA angle on the sine wave. 0-360.
+
+		while (true)
+		{
+			float period = 2.5f;
+			float percent = (Mathf.Sin(t * period) * Mathf.Rad2Deg) / (Mathf.Sin(360f) * Mathf.Rad2Deg);
+			percent = Mathf.Clamp01 (Mathf.Abs (percent));
+
+			Color tempColor = Color.Lerp (startColor, stressColor, percent);
+			Vector3 tempScale = Vector3.Lerp (startScale, stressScale, percent);
+
+			text.color = tempColor;
+			text.GetComponent<RectTransform> ().localScale = tempScale;
+
+			yield return new WaitForEndOfFrame ();
+
+			//Increment/clamp timer.
+			if (t <= 180f)
+			{
+				t += Time.deltaTime;
+			}
+			else
+			{
+				t = 0.0f;
+			}
+
+			Debug.Log ("From StressFX: t = " + t + "\nFrom StressFX: percent = " + percent);
+			yield return null;
+		}
 	}
 }

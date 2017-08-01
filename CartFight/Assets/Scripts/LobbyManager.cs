@@ -135,8 +135,10 @@ public class LobbyManager : MonoBehaviour
 			}
 		}
 
+		Debug.Log ("Joined: " + joinedPlayerData.Count);
+
 		//Load the main game scene.
-		SceneManager.LoadScene(gameSceneName);
+		SceneManager.LoadScene(GameSettingsMenu.Settings.Level.ToString());
 	}
 
 	public void ReturnToMenu()

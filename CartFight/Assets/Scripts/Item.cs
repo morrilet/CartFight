@@ -10,6 +10,7 @@ public class Item : PausableObject
 	public ItemType itemType;
 
 	public Sprite[] itemImages;
+	public Material[] itemMaterials;
 
 	//Perhaps make there
 	[HideInInspector]
@@ -27,6 +28,7 @@ public class Item : PausableObject
 	void Start()
 	{
 		GetComponent<SpriteRenderer> ().sprite = itemImages [(int) itemType];
+		//GetComponent<SpriteRenderer> ().material = itemMaterials [(int)itemType];
 		startingScale = this.transform.localScale;
 	}
 

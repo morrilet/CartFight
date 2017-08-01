@@ -1,7 +1,9 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using XInputDotNetPure;
 
 /// <summary>
 /// Sets up rounds, chooses player/item spawns, keeps track of respawn times and locations,
@@ -35,8 +37,18 @@ public class GameManager : MonoBehaviour
 	public static GameManager instance;
 
 	private KeyCode[] pauseKeys; //A list of all the players pause keys. Used to let the manager pause the game.
+	private GamePadState[] currPauseStates; //A list of the current gamepad states of all the gamepad players. Used for pausing.
+	private GamePadState[] prevPauseStates; //A list of the previous gamepad states of all the gamepad players. Used for pausing.
 
 	///////// Custom Data //////////
+
+	public enum GameLevels
+	{
+		FaceOff,
+		FastTrack,
+		Convenience,
+		LevelCount //The number of levels in this enum. Must be last.
+	};
 
 	public struct PlayerData
 	{
@@ -52,6 +64,8 @@ public class GameManager : MonoBehaviour
 
 		private bool useTimeLimit;
 		private bool useScoreLimit;
+
+		private GameManager.GameLevels level;
 
 		public enum GameModes
 		{
@@ -69,6 +83,7 @@ public class GameManager : MonoBehaviour
 				if (itemCount <= 0) { itemCount = 0; } } }
 		public bool UseTimeLimit { get { return this.useTimeLimit; } }
 		public bool UseScoreLimit { get { return this.useScoreLimit; } }
+		public GameLevels Level { get { return this.level; } set { level = value; } }
 		public GameModes Mode { 
 			get { return this.gameMode; } 
 			set 
@@ -97,6 +112,7 @@ public class GameManager : MonoBehaviour
 
 	public PlayerData[] Players() { return this.players; }
 	public bool IsPaused { get { return this.isPaused; } }
+	public GameSettings Settings { get { return this.settings; } }
 
 	///////// Primary Methods //////////
 
@@ -142,6 +158,27 @@ public class GameManager : MonoBehaviour
 		{
 			pauseKeys [i] = (players [i].player.controlScheme.PauseKey);
 		}
+
+		//Get all the gamepad states for pausing.
+		int gamepadPlayerCount = 0;
+		for (int i = 0; i < players.Length; i++) 
+		{
+			if (players [i].player.controlScheme.IsGamePad) 
+			{
+				gamepadPlayerCount++;
+			}
+		}
+		currPauseStates = new GamePadState[gamepadPlayerCount];
+		int gamepadPlayerNumber = 0;
+		for (int i = 0; i < players.Length; i++)
+		{
+			if (players [i].player.controlScheme.IsGamePad) 
+			{
+				currPauseStates [gamepadPlayerNumber] = GamePad.GetState (players [i].player.controlScheme.PIndex);
+				gamepadPlayerNumber++;
+			}
+		}
+		prevPauseStates = new GamePadState[currPauseStates.Length];
 			
 		//Ignore collisions with invulnerable objects. This is because abandoned carts use the
 		//built in physics system and not our custom event handlers, so we need to stop collisions
@@ -149,8 +186,11 @@ public class GameManager : MonoBehaviour
 		Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("Cart"), LayerMask.NameToLayer("Invulnerable"));
 		Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("Driver"), LayerMask.NameToLayer("Invulnerable"));
 
+		pauseMenu.GetComponent<PauseMenu> ().Start ();
 		SetPaused (false);
 		AudioManager.instance.PlayMusic ("Videogame2");
+
+		GUI.instance.Start ();
 	}
 
 	void Update()
@@ -164,6 +204,34 @@ public class GameManager : MonoBehaviour
 			{
 				SetPaused (!isPaused);
 				break;
+			}
+		}
+		///Handle pausing for gamepads outside of the (volatile) control scheme class.
+		for (int i = 0; i < currPauseStates.Length; i++) 
+		{
+			if (players [i].player.playerNumber == Player.PlayerNumber.P1) 
+			{
+				Debug.Log ("CurrStart : " + currPauseStates[i].Buttons.Start);
+				Debug.Log ("PrevStart : " + prevPauseStates[i].Buttons.Start + "\n\n\n\n");
+			}
+
+			if (currPauseStates [i].Buttons.Start == ButtonState.Pressed
+			   && prevPauseStates [i].Buttons.Start == ButtonState.Released) 
+			{
+				SetPaused (!isPaused);
+				break;
+			}
+		}
+
+		//Update pause states.
+		currPauseStates.CopyTo(prevPauseStates, 0);
+		int gamepadPlayerNumber = 0;
+		for (int i = 0; i < players.Length; i++)
+		{
+			if (players [i].player.controlScheme.IsGamePad) 
+			{
+				currPauseStates [gamepadPlayerNumber] = GamePad.GetState (players [i].player.controlScheme.PIndex);
+				gamepadPlayerNumber++;
 			}
 		}
 
@@ -183,7 +251,7 @@ public class GameManager : MonoBehaviour
 			//Check to see if anyone has won the game.
 			for (int i = 0; i < players.Length; i++) 
 			{
-				if (players [i].points >= settings.ScoreLimit) 
+				if (players [i].points >= settings.ScoreLimit && settings.UseScoreLimit) 
 				{
 					players [i].points = settings.ScoreLimit;
 					GUI.instance.UpdateScoreTexts ();

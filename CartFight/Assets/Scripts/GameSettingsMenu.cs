@@ -3,6 +3,10 @@ using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 
+/// <summary>
+/// Game settings/options menu. Handles the UI for the options menu. 
+/// Also controls what game settings are used (ie: time/score limit, game type, etc.)
+/// </summary>
 public class GameSettingsMenu : MonoBehaviour 
 {
 	////////// Variables //////////
@@ -15,6 +19,7 @@ public class GameSettingsMenu : MonoBehaviour
 	public GameObject timeLimit_SettingObj;
 	public GameObject scoreLimit_SettingObj;
 	public GameObject itemCount_SettingObj;
+	public GameObject level_SettingObj;
 
 	////////// Accessors //////////
 
@@ -31,6 +36,18 @@ public class GameSettingsMenu : MonoBehaviour
 		settings.ScoreLimit = 100;
 		settings.ItemCount = 3;
 		settings.Mode = GameManager.GameSettings.GameModes.ScoreAndTime;
+		settings.Level = GameManager.GameLevels.FaceOff;
+
+		//Set up the level dropdown
+		Dropdown dropdown_LS = level_SettingObj.transform.FindChild ("Level_Dropdown").GetComponent<Dropdown> ();
+		dropdown_LS.ClearOptions ();
+		for (int i = 0; i < (int)GameManager.GameLevels.LevelCount; i++) 
+		{
+			Dropdown.OptionData tempOption_LS = new Dropdown.OptionData (((GameManager.GameLevels)i).ToString());
+			dropdown_LS.options.Add (tempOption_LS);
+		}
+		dropdown_LS.value = 0;
+		dropdown_LS.RefreshShownValue ();
 
 		Update (); //Update the game settings and UI before we deactivate the menu.
 
@@ -59,6 +76,7 @@ public class GameSettingsMenu : MonoBehaviour
 		UpdateTimeLimitUI ();
 		UpdateScoreLimitUI ();
 		UpdateItemCountUI ();
+		UpdateLevelUI ();
 	}
 
 	private void UpdateGameModeUI()
@@ -165,6 +183,13 @@ public class GameSettingsMenu : MonoBehaviour
 
 		itemCount_Text.text = slider.value.ToString ();
 		settings.ItemCount = (int)slider.value;
+	}
+
+	private void UpdateLevelUI()
+	{
+		Dropdown dropdown = level_SettingObj.transform.FindChild ("Level_Dropdown").GetComponent<Dropdown> ();
+
+		settings.Level = ((GameManager.GameLevels)dropdown.value);
 	}
 
 	public void OpenMenu()

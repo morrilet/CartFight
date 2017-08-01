@@ -176,7 +176,7 @@ public class ResultsMenu : MonoBehaviour
 
 	public void Retry()
 	{
-		SceneManager.LoadScene ("Main");
+		SceneManager.LoadScene (GameSettingsMenu.Settings.Level.ToString());
 	}
 
 	public void Quit()
