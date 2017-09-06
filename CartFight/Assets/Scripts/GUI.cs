@@ -21,6 +21,7 @@ public class GUI : MonoBehaviour
 	{
 		private Text text;
 		private Player.PlayerNumber playerNumber;
+		private Coroutine stressEffect; //A reference to the coroutine running our stress FX.
 		private bool stressEffectActive;
 
 		public ScoreText(Text text, Player.PlayerNumber playerNumber)
@@ -28,11 +29,15 @@ public class GUI : MonoBehaviour
 			this.text = text;
 			this.playerNumber = playerNumber;
 			this.stressEffectActive = false;
+			this.stressEffect = null;
 		}
 
 		public Text getText() { return this.text; }
 		public void setText(Text text) { this.text = text; }
 		public Player.PlayerNumber getPlayerNumber() { return this.playerNumber; }
+		public Coroutine StressEffect { 
+			get { return this.stressEffect; } 
+			set { this.stressEffect = value; } }
 		public bool StressEffectActive { 
 			get { return this.stressEffectActive; } 
 			set { this.stressEffectActive = value; } }
@@ -57,7 +62,23 @@ public class GUI : MonoBehaviour
 	public void Start()
 	{
 		InitializeScoreTexts ();
-		FormatScoreTexts ();
+		switch (GameManager.instance.Settings.Level) 
+		{
+		case GameManager.GameLevels.FaceOff:
+			FormatScoreTexts (new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2 (-200f, 75f), true);
+			break;
+		case GameManager.GameLevels.FastTrack:
+			FormatScoreTexts (new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2 (-200f, 75f), true);
+			break;
+		case GameManager.GameLevels.Convenience:
+			FormatScoreTexts (new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2 (150f, -75f), false);
+			break;
+		default:
+			Debug.Log ("WARNING: Level " + GameManager.instance.Settings.Level.ToString () +
+			" is not defined in the GUI. Setting score texts XY to default value.");
+			FormatScoreTexts (new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2 (-200f, 75f), true);
+			break;
+		}
 		UpdateScoreTexts ();
 	}
 
@@ -66,7 +87,7 @@ public class GUI : MonoBehaviour
 	{
 		GameManager.PlayerData[] players = GameManager.instance.Players ();
 		scoreTexts = new ScoreText[players.Length];
-		for (int i = 0; i < scoreTexts.Length; i++) 
+		for (int i = 0; i < scoreTexts.Length; i++)
 		{
 			Text newText = Instantiate (scoreTextPrefab, Vector3.zero, Quaternion.identity) as Text;
 			newText.rectTransform.SetParent (this.transform); //Assuming GUI.cs is on the GUI canvas.
@@ -76,15 +97,43 @@ public class GUI : MonoBehaviour
 		}
 	}
 
-	private void FormatScoreTexts() //Sets the location of each score text
+	/// <summary>
+	/// Formats the score texts.
+	/// </summary>
+	/// <param name="scoresXY">Score text starting position: scores go UP from here for each player.</param>
+	/// <param name="anchorMin">The minimum anchor to use for the RectTransform.</param>
+	/// <param name="anchorMax">The maximum anchor to use for the RectTransform.</param>
+	/// <param name="stackOnTop">Whether or not to stack scores on top of each other 
+	/// or below each other from the origin.</param>
+	private void FormatScoreTexts(Vector2 anchorMin, Vector2 anchorMax, Vector2 scoresXY, bool stackOnTop)
 	{
-		for (int i = scoreTexts.Length - 1; i >= 0; i--)
+		for (int i = scoreTexts.Length - 1; i >= 0; i--) 
 		{
 			Text tempText = scoreTexts [i].getText (); //Create a text obj to modify then feed back into scoreTexts.
-			tempText.rectTransform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-			tempText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 300.0f);
+
+			//Set the anchors.
+			tempText.rectTransform.anchorMin = anchorMin;
+			tempText.rectTransform.anchorMax = anchorMax;
+
+			//Set the size and position.
+			tempText.rectTransform.localScale = new Vector3 (1.0f, 1.0f, 1.0f);
+			tempText.rectTransform.SetSizeWithCurrentAnchors (RectTransform.Axis.Horizontal, 300.0f);
 			tempText.rectTransform.SetSizeWithCurrentAnchors (RectTransform.Axis.Vertical, 75.0f);
-			tempText.rectTransform.anchoredPosition = new Vector2 (-200, 75 + ((scoreTexts.Length - i - 1) * 75));
+
+			if (stackOnTop) 
+			{
+				//We use scoreTexts.Length - i - 1 to make keep P1 at the top of the list
+				//while the last player is at the origin. 75 is just the height.
+				tempText.rectTransform.anchoredPosition = new Vector2 (scoresXY.x, 
+					scoresXY.y + ((scoreTexts.Length - i - 1) * 75f));
+			}
+			else
+			{
+				//Use plain ol' i and half the height to move each text down.
+				//This ensures that P1 is on the top (the origin) and that all other scores go below it.
+				tempText.rectTransform.anchoredPosition = new Vector2 (scoresXY.x, 
+					scoresXY.y + (i * -75f));
+			}
 
 			scoreTexts [i].setText (tempText);
 		}
@@ -105,13 +154,23 @@ public class GUI : MonoBehaviour
 					tempText.text = scoreTexts [i].getPlayerNumber ().ToString ()
 					+ " :: " + players [j].points;
 
-					//If a player has 90% or more of the score limit, 
+					//If a player has 90% or more of the score limit,
 					//apply a stress effect to their score text.
 					if ((float)(players [j].points / (float)GameManager.instance.Settings.ScoreLimit) >= 0.9f
 						&& !scoreTexts [i].StressEffectActive && GameManager.instance.Settings.UseScoreLimit) 
 					{
-						ApplyStressEffect (scoreTexts [i].getText ());
+						scoreTexts [j].StressEffect = ApplyStressEffect (scoreTexts [i].getText ());
 						scoreTexts [j].StressEffectActive = true;
+					}
+
+					//If the player has no carried items at the moment,
+					//remove any stress effect from their score text.
+					if (scoreTexts [i].StressEffectActive && players [j].player.carriedItems.Count <= 0) 
+					{
+						//Manually stop the score texts stress FX coroutine.
+						StopCoroutine (scoreTexts [i].StressEffect);
+						RemoveStressEffect (scoreTexts [i].getText ());
+						scoreTexts [i].StressEffectActive = false;
 					}
 				}
 			}
@@ -153,14 +212,15 @@ public class GUI : MonoBehaviour
 		timeText.text = mins + ":" + secs;
 	}
 
-	private void ApplyStressEffect(Text text)
+	//Returns a reference to the stress effect coroutine.
+	private Coroutine ApplyStressEffect(Text text)
 	{
-		Debug.Log ("Here!");
-		StartCoroutine (StressEffect_Coroutine (text));
+		StopCoroutine (RemoveStressEffect_Coroutine (text));
+		return StartCoroutine (ApplyStressEffect_Coroutine (text));
 	}
 
 	//Flashes the input text red and scales it along a sine wave.
-	private IEnumerator StressEffect_Coroutine(Text text)
+	private IEnumerator ApplyStressEffect_Coroutine(Text text)
 	{
 		Color startColor = text.color;
 		Vector3 startScale = text.gameObject.GetComponent<RectTransform> ().localScale;
@@ -187,7 +247,8 @@ public class GUI : MonoBehaviour
 			//Increment/clamp timer.
 			if (t <= 180f)
 			{
-				t += Time.deltaTime;
+				if(!GameManager.instance.IsPaused)
+					t += Time.deltaTime;
 			}
 			else
 			{
@@ -197,5 +258,47 @@ public class GUI : MonoBehaviour
 			Debug.Log ("From StressFX: t = " + t + "\nFrom StressFX: percent = " + percent);
 			yield return null;
 		}
+	}
+
+	private void RemoveStressEffect(Text text)
+	{
+		//FX coroutine is stopped first where this is called.
+		StartCoroutine (RemoveStressEffect_Coroutine (text));
+	}
+
+	//Lerps the text from its current color to its normal color over 1 second.
+	private IEnumerator RemoveStressEffect_Coroutine(Text text)
+	{
+		Color startColor = text.color;
+		Vector3 startScale = text.gameObject.GetComponent<RectTransform> ().localScale;
+
+		//TODO: Don't hardcode these values. Eew.
+		Color normalColor = new Color(50f/255f, 50f/255f, 50f/255f, 1);
+		Vector3 normalScale = new Vector3(1.0f, 1.0f, 1.0f);
+
+		float t = 0.0f; //Timer.
+
+		while (t <= 1.0f)
+		{
+			float percent = t / 1.0f;
+			percent = Mathf.Clamp01 (Mathf.Abs (percent));
+
+			Color tempColor = Color.Lerp (startColor, normalColor, percent);
+			Vector3 tempScale = Vector3.Lerp (startScale, normalScale, percent);
+
+			text.color = tempColor;
+			text.GetComponent<RectTransform> ().localScale = tempScale;
+
+			//Is this line needed? Dunno. Ethan 8/18/17.
+			yield return new WaitForEndOfFrame ();
+
+			//Increment timer.
+			t += Time.deltaTime;
+
+			yield return null;
+		}
+
+		text.color = normalColor;
+		text.rectTransform.localScale = normalScale;
 	}
 }
