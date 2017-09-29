@@ -182,6 +182,12 @@ public class Player : PausableObject
 
 			//Update the drivers animation speed based on our current velocity.
 			float clampedSpeed = velocity.magnitude / maxVelocity; //Our speed from 0-1.
+			//If we're moving backwards, we should reverse the clamped speed.
+			//Recall that transform.right is our forward direction.
+			if (Vector2.Dot ((Vector2)this.transform.right, velocity.normalized) < 0) 
+			{
+				clampedSpeed *= -1f;
+			}
 			driverAnimator.SetFloat("AnimationSpeed", clampedSpeed);
 		}
 	}
@@ -218,9 +224,12 @@ public class Player : PausableObject
 			SetInvulnerable (false);
 		}
 
-		//Empty our refere	nces.
+		//Empty our references.
 		cartObj = null;
 		cart = null;
+
+		//Set the animator info.
+		driverAnimator.SetBool("hasCart", false);
 	}
 
 	//Adds a cart to this player object.
@@ -245,6 +254,9 @@ public class Player : PausableObject
 		}
 		//Ignore collisions between the player and the cart.
 		Physics2D.IgnoreCollision (driverObj.GetComponent<Collider2D> (), this.cartObj.GetComponent<Collider2D> ());
+
+		//Set the animator info.
+		driverAnimator.SetBool("hasCart", true);
 	}
 
 	private IEnumerator LerpCart_Coroutine(Vector3 position, Quaternion rotation, float duration)
@@ -551,7 +563,7 @@ public class Player : PausableObject
 		{
 			Vector2 normal = other.contacts [0].normal;
 
-			//Test both the normal in both directions...
+			//Test the normal in both directions...
 			//First test it along the normal.
 			Vector2 pointOutsideCollider_1 = (Vector2)other.contacts[0].point + (normal.normalized * 5f);
 			Vector2 nearestPoint_1 = Vector2.zero;

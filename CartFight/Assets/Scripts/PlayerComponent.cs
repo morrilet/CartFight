@@ -23,7 +23,7 @@ public class PlayerComponent : PausableObject
 
 	public event OnHitAction OnHitItem;
 
-	private List<Collider2D> touching; //The colliders we're currently touching.
+	private List<Collider2D> touching; //The triggers we're currently touching.
 	public List<Collider2D> Touching { get { return this.touching; } }
 
 	public bool invulnerable;
@@ -67,9 +67,19 @@ public class PlayerComponent : PausableObject
 		}
 	}
 
+	private void OnTriggerEnter2D(Collider2D other)
+	{
+		touching.Add (other);
+	}
+
+	private void OnTriggerExit2D(Collider2D other)
+	{
+		touching.Remove (other);
+	}
+
 	IEnumerator OnCollisionEnter2D(Collision2D other)
 	{
-		touching.Add (other.collider);
+		//touching.Add (other.collider);
 
 		//This is a good idea I think, try to keep it in with the upcoming refactoring. (6/27/17)
 		if (other.gameObject.tag == "Invulnerable")
@@ -201,7 +211,7 @@ public class PlayerComponent : PausableObject
 
 	void OnCollisionExit2D(Collision2D other)
 	{
-		touching.Remove (other.collider);
+		//touching.Remove (other.collider);
 	}
 
 	public void UnhookEvents()

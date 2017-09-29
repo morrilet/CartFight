@@ -25,6 +25,8 @@ public class Item : PausableObject
 
 	private Vector3 startingScale; //The size of the item.
 
+	private Coroutine movingCoroutine; //This houses the coroutine that we use for lerping to a position.
+
 	void Start()
 	{
 		GetComponent<SpriteRenderer> ().sprite = itemImages [(int) itemType];
