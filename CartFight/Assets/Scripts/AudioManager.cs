@@ -20,11 +20,9 @@ public class AudioManager : MonoBehaviour
 	{
 		DontDestroyOnLoad (this.gameObject);
 
-		if (instance != null && instance != this) 
+		if (instance != null && instance != this)
 		{
-			//Debug.Log ("INST_MVOL: " + MusicVolume);
-			Destroy (instance.gameObject);
-			instance = this;
+			GameObject.Destroy (this.gameObject);
 		}
 		else
 		{
@@ -32,7 +30,6 @@ public class AudioManager : MonoBehaviour
 		}
 
 		Start ();
-		//Debug.Log ("THIS_MVOL: " + MusicVolume);
 	}
 
 	void Start()
@@ -40,10 +37,10 @@ public class AudioManager : MonoBehaviour
 		effectSource = this.GetComponents<AudioSource> () [0];
 		musicSource = this.GetComponents<AudioSource> () [1];
 
-		//Remove all other audio listeners from the scene.
-		foreach (AudioListener listener in GameObject.FindObjectsOfType<AudioListener>()) 
+		//Remove all non-instance audio listeners from the scene.
+		foreach (AudioListener listener in GameObject.FindObjectsOfType<AudioListener>())
 		{
-			if (listener != this.GetComponent<AudioListener> ()) 
+			if (listener != instance.GetComponent<AudioListener> ()) 
 			{
 				Destroy (listener);
 			}
@@ -65,6 +62,7 @@ public class AudioManager : MonoBehaviour
 	////////// Custom Methods //////////
 	public void PlayEffect (string effectName)
 	{
+		Debug.Log ("Effect played: " + effectName);
 		AudioClip clip = GetClipFromArray (effectName, effects);
 		if (clip != null) 
 		{
@@ -81,6 +79,11 @@ public class AudioManager : MonoBehaviour
 			musicSource.loop = true;
 			musicSource.Play ();
 		}
+	}
+
+	public void StopMusic()
+	{
+		musicSource.Stop ();
 	}
 
 	private AudioClip GetClipFromArray(string name, AudioClip[] clipArray)

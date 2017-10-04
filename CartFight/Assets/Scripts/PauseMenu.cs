@@ -6,7 +6,7 @@ using System.Collections;
 //REWORK THIS! May need to handle the animation from code in order to get it to blend correctly.
 //Also, be sure that the menu leaves before the game is unpaused.
 
-public class PauseMenu : MonoBehaviour 
+public class PauseMenu : Menu 
 {
 	public AnimationCurve elementCurve;
 	public AnimationCurve backgroundCurve;
@@ -35,8 +35,10 @@ public class PauseMenu : MonoBehaviour
 	private float effectVolOpenPos, effectVolClosePos;
 	private float backgroundOpenA, backgroundCloseA;
 
-	public void Start()
+	public override void Start()
 	{
+		base.Start ();
+
 		resumeElement = this.transform.FindChild ("Resume").GetComponent<RectTransform> ();
 		backElement = this.transform.FindChild ("Quit").GetComponent<RectTransform> ();
 		titleElement = this.transform.FindChild ("PauseText").GetComponent<RectTransform> ();
@@ -79,6 +81,7 @@ public class PauseMenu : MonoBehaviour
 
 	public void LoadMainMenu()
 	{
+		AudioManager.instance.StopMusic ();
 		SceneManager.LoadScene ("MainMenu");
 	}
 
@@ -90,7 +93,7 @@ public class PauseMenu : MonoBehaviour
 		}
 		animCoroutine = StartCoroutine (OpenMenu_Coroutine ());
 
-		resumeElement.GetComponentInChildren<Button> ().Select ();
+		base.SelectSilently (resumeElement.GetComponentInChildren<Button> ());
 	}
 
 	public void CloseMenu()

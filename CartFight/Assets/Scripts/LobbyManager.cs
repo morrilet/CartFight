@@ -11,9 +11,7 @@ public class LobbyManager : MonoBehaviour
 
 	public string gameSceneName; //The scene to load when the game is started.
 	public string mainMenuName;
-	public Button readyButton; //The button that starts the game.
-	private bool prevReadyButtonInteract; //The last interactable state of the ready button. 
-	                                      //Used to select it on making it interactable.
+
 	public LobbyPanel[] lobbyPanels = new LobbyPanel[4]; //The panels that have joined the game. 
 														 //(Each panel represents one player)
 	private List<ControlScheme> availableControlSchemes; //The control schemes still available for use.
@@ -32,6 +30,8 @@ public class LobbyManager : MonoBehaviour
 	private GamePadState[] gamepad_States; //Houses the current states for gamepads 1-4 (0-3).
 	private GamePadState[] gamepad_PrevStates; //Houses the previous states for gamepads 1-4 (0-3).
 
+	private int currentJoinedPlayerCount;
+
 	[SerializeField]
 	private GameSettingsMenu settingsMenu; //The settings menu to use.
 
@@ -47,6 +47,11 @@ public class LobbyManager : MonoBehaviour
 		get { return GameSettingsMenu.Settings; }
 	}
 
+	public int CurrentJoinedPlayerCount
+	{
+		get { return this.currentJoinedPlayerCount; }
+	}
+
 	////////// Primary Methods //////////
 
 	void Start()
@@ -59,8 +64,6 @@ public class LobbyManager : MonoBehaviour
 
 		//Get the settings menu to pull settings from.
 		//settingsMenu = GameObject.Find ("GameSettings_Menu").GetComponent<GameSettingsMenu>();
-
-		prevReadyButtonInteract = false;
 	}
 
 	void Update()
@@ -80,25 +83,13 @@ public class LobbyManager : MonoBehaviour
 		ListenForControlSchemes ();
 
 		//Set the ready button interactable state to true or false based on how many players are joined.
-		int joinedPlayersCount = 0;
+		currentJoinedPlayerCount = 0;
 		for (int i = 0; i < lobbyPanels.Length; i++) 
 		{
 			if (lobbyPanels [i].JoinedPlayer.PlayerNumber != Player.PlayerNumber.None) 
 			{
-				joinedPlayersCount++;
+				currentJoinedPlayerCount++;
 			}
-		}
-		readyButton.interactable = (joinedPlayersCount >= 2) ? true : false;
-
-		//Select the ready button if it's interactable. Otherwise, select the back button.
-		//TODO: Make a back button variable. It'll be quick, I promise.
-		if (readyButton.interactable && !prevReadyButtonInteract) 
-		{ 
-			readyButton.Select ();
-		} 
-		else if (!readyButton.interactable && prevReadyButtonInteract) 
-		{ 
-			GameObject.Find ("Back_Button").GetComponent<Button>().Select(); 
 		}
 
 		//Update previous gamepad states.
@@ -114,8 +105,6 @@ public class LobbyManager : MonoBehaviour
 			debugOutput += " (" + availableControlSchemes[i].UpKey.ToString() + ") ";
 		}
 		//Debug.Log (debugOutput);
-
-		prevReadyButtonInteract = readyButton.interactable;
 	}
 
 	////////// Custom Methods //////////

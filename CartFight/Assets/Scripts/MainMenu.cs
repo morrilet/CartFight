@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections;
 
-public class MainMenu : MonoBehaviour 
+public class MainMenu : Menu
 {
 	private MenuDoor_Controller doorController;
 	private HintText_Controller hintTextController;
@@ -14,8 +14,10 @@ public class MainMenu : MonoBehaviour
 	private Button quitButton;
 	private Button settingsButton;
 
-	public void Start()
+	public override void Start()
 	{
+		base.Start ();
+
 		doorController = transform.GetComponentInChildren<MenuDoor_Controller> ();
 		hintTextController = transform.GetComponentInChildren<HintText_Controller> ();
 
@@ -28,11 +30,14 @@ public class MainMenu : MonoBehaviour
 		{
 			sceneLoadedBefore = true;
 			StartCoroutine (StartScene_Coroutine ());
-		} 
-		else 
+		}
+		else
 		{
 			doorController.gameObject.SetActive (false);
 		}
+
+		//Select it silently b/c it's the default button to select.
+		SelectSilently(playButton);
 	}
 
 	public void Settings()
@@ -57,6 +62,8 @@ public class MainMenu : MonoBehaviour
 
 	private IEnumerator Quit_Coroutine()
 	{
+		base.SetAllButtonsSilent (true);
+
 		playButton.interactable = false;
 		howToPlayButton.interactable = false;
 		quitButton.interactable = false;
@@ -105,7 +112,8 @@ public class MainMenu : MonoBehaviour
 		quitButton.interactable = true;
 		settingsButton.interactable = true;
 
-		playButton.Select ();
+		//Select it silently b/c it's the default button to select.
+		SelectSilently(playButton);
 	}
 
 	private IEnumerator StartHintText_Coroutine(float entryDelay)

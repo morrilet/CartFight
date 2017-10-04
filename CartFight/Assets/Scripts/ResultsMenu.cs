@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Collections.Generic;
 
-public class ResultsMenu : MonoBehaviour 
+public class ResultsMenu : Menu 
 {
 	////////// Variables //////////
 	public GameObject resultsPanelPrefab;
@@ -65,8 +65,10 @@ public class ResultsMenu : MonoBehaviour
 	}
 
 	////////// Primary Methods //////////
-	void Start()
+	public override void Start()
 	{
+		base.Start ();
+
 		InstantiateResultsPanels ();
 		FormatResultsPanels ();
 	}

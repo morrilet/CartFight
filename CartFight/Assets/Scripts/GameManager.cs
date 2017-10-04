@@ -257,7 +257,7 @@ public class GameManager : MonoBehaviour
 					GUI.instance.UpdateScoreTexts ();
 					GUI.instance.TimeText.gameObject.SetActive (false);
 
-					SceneManager.LoadScene ("Results");
+					GoToResultsMenu ();
 				}
 			}
 		}
@@ -268,7 +268,7 @@ public class GameManager : MonoBehaviour
 			if (gameTimer >= settings.TimeLimit) 
 			{
 				GUI.instance.UpdateScoreTexts ();
-				SceneManager.LoadScene ("Results");
+				GoToResultsMenu ();
 			}
 
 			gameTimer += Time.deltaTime;
@@ -281,6 +281,13 @@ public class GameManager : MonoBehaviour
 	}
 
 	///////// Custom Methods //////////
+
+	//Opens the results menu, which in turn marks the end of the current game.
+	private void GoToResultsMenu()
+	{
+		AudioManager.instance.StopMusic ();
+		SceneManager.LoadScene ("ResultsMenu");
+	}
 
 	//Adds points to a player in the players list.
 	//(Be sure that our players list always stays up to date to avoid errors...)

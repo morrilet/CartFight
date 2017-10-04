@@ -67,6 +67,8 @@ public class PlayerComponent : PausableObject
 		}
 	}
 
+	//The trigger methods are only used by carts, and allow 
+	//for an easier cart grab for the player.
 	private void OnTriggerEnter2D(Collider2D other)
 	{
 		touching.Add (other);
@@ -79,8 +81,6 @@ public class PlayerComponent : PausableObject
 
 	IEnumerator OnCollisionEnter2D(Collision2D other)
 	{
-		//touching.Add (other.collider);
-
 		//This is a good idea I think, try to keep it in with the upcoming refactoring. (6/27/17)
 		if (other.gameObject.tag == "Invulnerable")
 			yield return null;
@@ -207,11 +207,6 @@ public class PlayerComponent : PausableObject
 				}
 			}
 		}
-	}
-
-	void OnCollisionExit2D(Collision2D other)
-	{
-		//touching.Remove (other.collider);
 	}
 
 	public void UnhookEvents()

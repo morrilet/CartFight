@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Collections.Generic;
 
-public class HowToPlay_Menu : MonoBehaviour 
+public class HowToPlay_Menu : Menu 
 {
 	public List<MovieTexture> movies;
 	public RectTransform[] instructionsElements;
@@ -17,15 +17,17 @@ public class HowToPlay_Menu : MonoBehaviour
 	private bool settingInstructionsActive = false;
 	private bool settingControlsActive = false;
 
-	private void Start()
+	public override void Start()
 	{
+		base.Start ();
+
 		for (int i = 0; i < movies.Count; i++) 
 		{
 			movies [i].loop = true;
 			movies [i].Play ();
 		}
 
-		switchButton.Select ();
+		base.SelectSilently (switchButton);
 
 		StartCoroutine (SetControlsActive (false, 0.0f));
 	}

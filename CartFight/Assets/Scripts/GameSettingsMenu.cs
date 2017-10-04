@@ -7,7 +7,7 @@ using System.Collections.Generic;
 /// Game settings/options menu. Handles the UI for the options menu. 
 /// Also controls what game settings are used (ie: time/score limit, game type, etc.)
 /// </summary>
-public class GameSettingsMenu : MonoBehaviour 
+public class GameSettingsMenu : Menu 
 {
 	////////// Variables //////////
 
@@ -28,7 +28,7 @@ public class GameSettingsMenu : MonoBehaviour
 
 	////////// Primary Methods //////////
 
-	private void Start()
+	public override void Start()
 	{
 		//Default settings.
 		settings = new GameManager.GameSettings ();
@@ -226,7 +226,8 @@ public class GameSettingsMenu : MonoBehaviour
 		{
 			if (menuObjs [i].gameObject.name == "OK_Button") 
 			{
-				menuObjs [i].Select ();
+				Button tempButton = menuObjs [i] as Button;
+				base.SelectSilently (tempButton);
 				break;
 			}
 		}

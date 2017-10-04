@@ -5,7 +5,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 
-public class SettingsMenu : MonoBehaviour 
+public class SettingsMenu : Menu 
 {
 	private Dropdown resolutionDropdown;
 	private Toggle fullscreenToggle;
@@ -20,8 +20,10 @@ public class SettingsMenu : MonoBehaviour
 	private float oldMusicVolume, tempMusicVolume;
 	private float oldEffectVolume, tempEffectVolume;
 
-	private void Start()
+	public override void Start()
 	{
+		base.Start ();
+
 		//Get all the elements.
 		resolutionDropdown = GameObject.Find ("Resolution_Dropdown").GetComponent<Dropdown> ();
 		fullscreenToggle = GameObject.Find ("Fullscreen_Toggle").GetComponent<Toggle> ();
@@ -70,7 +72,7 @@ public class SettingsMenu : MonoBehaviour
 		effectVolumeText.text = (int)effectVolumeSlider.value + "%";
 		applyButton.interactable = false;
 
-		GameObject.Find ("Back").GetComponent<Button> ().Select ();
+		base.SelectSilently (GameObject.Find ("Back").GetComponent<Button> ());
 	}
 
 	private void Update()
@@ -95,10 +97,12 @@ public class SettingsMenu : MonoBehaviour
 		if (!resolutionsEqual || oldFullscreen != tempFullscreen
 		    || oldMusicVolume != tempMusicVolume || oldEffectVolume != tempEffectVolume) 
 		{
+			base.SetButtonSilent (applyButton, false);
 			applyButton.interactable = true;
 		}
 		else 
 		{
+			base.SetButtonSilent (applyButton, true);
 			applyButton.interactable = false;
 		}
 	}
