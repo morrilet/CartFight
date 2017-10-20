@@ -286,7 +286,7 @@ public class GameManager : MonoBehaviour
 	private void GoToResultsMenu()
 	{
 		AudioManager.instance.StopMusic ();
-		SceneManager.LoadScene ("ResultsMenu");
+		SceneManager.LoadScene ("Results");
 	}
 
 	//Adds points to a player in the players list.
