@@ -52,6 +52,11 @@ public class LobbyManager : MonoBehaviour
 		get { return this.currentJoinedPlayerCount; }
 	}
 
+    public GameSettingsMenu SettingsMenu
+    {
+        get { return this.settingsMenu; }
+    }
+
 	////////// Primary Methods //////////
 
 	void Start()

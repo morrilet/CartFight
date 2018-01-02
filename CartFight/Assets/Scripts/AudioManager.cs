@@ -11,7 +11,7 @@ public class AudioManager : MonoBehaviour
 	private AudioSource effectSource;
 	private AudioSource musicSource;
 
-	private static float effectVolume = 1.0f, musicVolume = 1.0f;
+	private static float effectVolume = 1.0f, musicVolume = 1.0f, tempVolume = 1.0f;
 	public float EffectVolume { get { return effectVolume; } set { effectVolume = value; } }
 	public float MusicVolume { get { return musicVolume; } set { musicVolume = value; } }
 
@@ -62,7 +62,7 @@ public class AudioManager : MonoBehaviour
 	////////// Custom Methods //////////
 	public void PlayEffect (string effectName)
 	{
-		Debug.Log ("Effect played: " + effectName);
+		//Debug.Log ("Effect played: " + effectName);
 		AudioClip clip = GetClipFromArray (effectName, effects);
 		if (clip != null) 
 		{
@@ -85,6 +85,50 @@ public class AudioManager : MonoBehaviour
 	{
 		musicSource.Stop ();
 	}
+
+    public void FadeOutMusic(float duration)
+    {
+        StartCoroutine(FadeOutMusic_Coroutine(duration));
+    }
+
+    public void FadeInMusic(string musicName, float duration)
+    {
+        PlayMusic(musicName);
+        StartCoroutine(FadeInMusic_Coroutine(duration));
+    }
+
+    private IEnumerator FadeOutMusic_Coroutine(float duration)
+    {
+        tempVolume = musicVolume;
+        musicSource.volume = tempVolume;
+        float t = 0;
+        while(t < duration)
+        {
+            tempVolume = Mathf.Lerp(musicVolume, 0.0f, t / duration);
+            musicSource.volume = tempVolume;
+
+            t += Time.deltaTime;
+            yield return null;
+        }
+        StopMusic();
+        musicSource.volume = musicVolume;
+    }
+
+    private IEnumerator FadeInMusic_Coroutine(float duration)
+    {
+        tempVolume = 0.0f;
+        musicSource.volume = tempVolume;
+        float t = 0;
+        while (t < duration)
+        {
+            tempVolume = Mathf.Lerp(0.0f, musicVolume, t / duration);
+            musicSource.volume = tempVolume;
+
+            t += Time.deltaTime;
+            yield return null;
+        }
+        musicSource.volume = musicVolume;
+    }
 
 	private AudioClip GetClipFromArray(string name, AudioClip[] clipArray)
 	{

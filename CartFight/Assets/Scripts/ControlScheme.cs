@@ -17,6 +17,7 @@ public class ControlScheme
 	private float horizontal, vertical; //The input axes. -1 = left/down, 0 = no input, 1 = right/up.
 	private bool throwKeyDown = false;
 	private bool pauseKeyDown = false;
+    private bool isVibrating = false; //Whether or not we're currently vibrating the gamepad (if we use one).
 
 	public enum GamepadControlStick //Which stick to use for gathering input. (For both, right = horiz, left = vert.)
 	{
@@ -40,6 +41,9 @@ public class ControlScheme
 	public float Vertical { get { return this.vertical; } }
 	public bool ThrowKeyDown { get { return this.throwKeyDown; } }
 	public bool PauseKeyDown { get { return this.pauseKeyDown; } }
+    public bool IsVibrating {
+        get { return this.isVibrating; }
+        set { this.isVibrating = value; } }
 
 	public PlayerIndex PIndex { get { return this.playerIndex; } }
 

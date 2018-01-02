@@ -61,10 +61,14 @@ public class GameSettingsMenu : Menu
 		this.gameObject.SetActive (false);
 
 		menuActive = false;
+
+        base.onBackButtonPressed += this.CloseMenu;
 	}
 
-	private void Update()
+	public override void Update()
 	{
+        base.Update();
+
 		UpdateUI ();
 	}
 
@@ -196,27 +200,35 @@ public class GameSettingsMenu : Menu
 	{
 		menuActive = true;
 		this.gameObject.SetActive (true);
+        AudioManager.instance.PlayEffect("PaperSlide_Enter");
 		StartCoroutine (OpenMenu_Coroutine ());
 	}
 
 	public void CloseMenu()
 	{
+        //Note that there is less here than in OpenMenu() because much of the
+        //logic must be done after the animation finishes, in the coroutine.
+        AudioManager.instance.PlayEffect("PaperSlide_Exit");
 		StartCoroutine (CloseMenu_Coroutine ());
 	}
 
 	private IEnumerator OpenMenu_Coroutine()
 	{
+        //Unselect any currently selected button so it can't be spammed
+        //while we open the menu.
+        //base.DeselectCurrentlySelected();
+
 		this.gameObject.SetActive (true);
 
 		menuActive = true;
 
 		Animator anim = this.GetComponent<Animator> ();
-		Debug.Log (anim.gameObject.name);
-		anim.SetBool ("MenuActive", true);
+        //Debug.Log (anim.gameObject.name);
+        anim.SetBool ("MenuActive", true);
 
 		SetMenuInteractable (false);
 
-		Debug.Log (anim.GetCurrentAnimatorClipInfo(0).Length);
+		//Debug.Log (anim.GetCurrentAnimatorClipInfo(0).Length);
 		yield return new WaitForSeconds (anim.GetCurrentAnimatorClipInfo(0).Length);
 
 		SetMenuInteractable (true);
@@ -242,13 +254,16 @@ public class GameSettingsMenu : Menu
 
 		SetMenuInteractable (false);
 
-		//Select the settings menu button.
-		GameObject.Find ("Settings_Button").GetComponent<Button> ().Select();
+        base.DeselectCurrentlySelected();
 
-		Debug.Log (anim.GetCurrentAnimatorClipInfo(0).Length);
+		//Debug.Log (anim.GetCurrentAnimatorClipInfo(0).Length);
 		yield return new WaitForSeconds (anim.GetCurrentAnimatorClipInfo (0).Length);
 
-		this.gameObject.SetActive (false);
+        //Select the settings menu button.
+        base.SelectSilently(GameObject.Find("Settings_Button").GetComponent<Button>());
+        //GameObject.Find ("Settings_Button").GetComponent<Button> ().Select();
+
+        this.gameObject.SetActive (false);
 	}
 
 	private void SetMenuInteractable(bool interactable)

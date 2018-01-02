@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using XInputDotNetPure;
 
 //Testing...
 using UnityEngine.SceneManagement;
@@ -164,6 +165,7 @@ public class Player : PausableObject
 									if (cartObj == null) //Double check this.
 									{
 										AddCart (obj);
+                                        break;
 									}
 								}
 							}
@@ -353,6 +355,9 @@ public class Player : PausableObject
 		//Moderate screen shake.
 		Camera_Controller.instance.Shake(.35f, .5f);
 
+        //Play the death sound.
+        AudioManager.instance.PlayEffect("Die");
+
 		//Unhook the player from the player components...
 		//(Not doing this for cart because it's handled in remove cart.)
 		//UnhookDriverEvents ();
@@ -447,6 +452,10 @@ public class Player : PausableObject
 			{
 				//Slight screen shake.
 				Camera_Controller.instance.Shake(.2f, .35f);
+
+                //Controller rumble.
+                this.TryVibrateGamepad(0.3f, 0.8f);
+                other.transform.parent.GetComponent<Player>().TryVibrateGamepad(0.3f, 0.8f);
 			}
 			else
 			{
@@ -459,7 +468,10 @@ public class Player : PausableObject
 				{
 					Camera_Controller.instance.Shake (.1f, .1f);
 				}
-			}
+
+                //Controller rumble.
+                this.TryVibrateGamepad(0.3f, 0.8f);
+            }
 		}
 	}
 
@@ -505,7 +517,11 @@ public class Player : PausableObject
 
 				//Kill the driver.
 				other.transform.parent.gameObject.GetComponent<Player> ().Die ();
-			}
+
+                //Controller rumble.
+                this.TryVibrateGamepad(0.5f, 1.0f);
+                other.transform.parent.GetComponent<Player>().TryVibrateGamepad(0.5f, 1.0f);
+            }
 		}
 	}
 
@@ -553,7 +569,7 @@ public class Player : PausableObject
 	//     intruding part to (called the nearest point.)
 	//4.5 :: Repeat steps 3 and 4 for the -normal, then choose the shortest distance
 	//	   to use for step 5. This ensures that we never choose to move the player
-	//	   to the other side of an objecct we're colliding with.
+	//	   to the other side of an object we're colliding with.
 	//5 :: Move the appropriate distance in the appropriate direction in order to
 	//     get outside of the object, and set velocity to that same value so that
 	//     the movement is less jerky.
@@ -918,8 +934,71 @@ public class Player : PausableObject
 		driverObj.GetComponent<SpriteRenderer> ().color = newDriverColor;
 	}
 
-	//Draws a cross on a point for debugging.
-	private void DrawCross(Vector3 point, float size, Color color)
+    /// <summary>
+    /// Attempts to vibrate the gamepad. Does nothing if we're not using
+    /// a gamepad or if we're already vibrating the gamepad.
+    /// </summary>
+    /// <param name="duration">The length of the vibration in seconds.</param>
+    /// <param name="vibrationStrength">The strength of the vibration from 0 to 1.</param>
+    public void TryVibrateGamepad(float duration, float vibrationStrength)
+    {
+        //If we're using a gamepad...
+        if (this.controlScheme.IsGamePad)
+        {
+            //Set vibrating to true. If it's already true, stop the coroutine
+            //and start a new vibration coroutine.
+            if (this.controlScheme.IsVibrating)
+            {
+                StopCoroutine("VibrateGamepad_Coroutine");
+                GamePad.SetVibration(this.controlScheme.PIndex, 0.0f, 0.0f);
+            }
+            else
+            {
+                this.controlScheme.IsVibrating = true;
+            }
+
+            StartCoroutine(VibrateGamepad_Coroutine(duration, vibrationStrength));
+        }
+    }
+
+    /// <summary>
+    /// Vibrates the gamepad associated with this player for a specified duration
+    /// and with a specified strength. Assumes that we are using a gamepad.
+    /// </summary>
+    /// <param name="duration">The length of the vibration in seconds.</param>
+    /// <param name="vibrationStrength">The strength of the vibration from 0 to 1.</param>
+    /// <returns></returns>
+    private IEnumerator VibrateGamepad_Coroutine(float duration, float vibrationStrength)
+    {
+        GamePad.SetVibration(this.controlScheme.PIndex, vibrationStrength, vibrationStrength);
+
+        float timer = 0.0f;
+        while (timer < duration)
+        {
+            //If the game gets paused, halt the vibration and resume it after the pause.
+            if (this.IsPaused && !this.IsPausedPrev)
+            {
+                GamePad.SetVibration(this.controlScheme.PIndex, 0.0f, 0.0f);
+            }
+            if(!this.IsPaused && this.IsPausedPrev)
+            {
+                GamePad.SetVibration(this.controlScheme.PIndex, vibrationStrength, vibrationStrength);
+            }
+
+            if(!this.IsPaused)
+            {
+                timer += Time.deltaTime;
+            }
+            yield return null;
+        }
+
+        GamePad.SetVibration(this.controlScheme.PIndex, 0.0f, 0.0f);
+
+        this.controlScheme.IsVibrating = false;
+    }
+
+    //Draws a cross on a point for debugging.
+    private void DrawCross(Vector3 point, float size, Color color)
 	{
 		//Vertical...
 		Debug.DrawLine(new Vector3(point.x, point.y - size, 0), new Vector3(point.x, point.y + size, 0), color);

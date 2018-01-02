@@ -66,8 +66,10 @@ public class PauseMenu : Menu
 		SetChildrenActive (false);
 	}
 
-	private void Update ()
+	public override void Update ()
 	{
+        base.Update();
+
 		AudioManager.instance.MusicVolume = musicSlider.value / 100f;
 		AudioManager.instance.EffectVolume = effectSlider.value / 100f;
 		musicText.text = musicSlider.value + "%";

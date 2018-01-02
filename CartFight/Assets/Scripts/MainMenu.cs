@@ -29,7 +29,8 @@ public class MainMenu : Menu
 		if (!sceneLoadedBefore) 
 		{
 			sceneLoadedBefore = true;
-			StartCoroutine (StartScene_Coroutine ());
+            AudioManager.instance.PlayMusic("Traffic_Loop");
+            StartCoroutine (StartScene_Coroutine ());
 		}
 		else
 		{
@@ -71,11 +72,17 @@ public class MainMenu : Menu
 
 		doorController.gameObject.SetActive (true);
 
+        AudioManager.instance.FadeInMusic("Traffic_Loop", 0.5f);
+        AudioManager.instance.PlayEffect("Doors_Close");
+        
 		doorController.CloseDoors ();
 		while (doorController.DoorsOpen == true) 
 		{
 			yield return null;
 		}
+
+        AudioManager.instance.PlayEffect("Doors_Slam");
+
 		yield return new WaitForSeconds (0.65f);
 		Application.Quit ();
 	}
@@ -101,13 +108,16 @@ public class MainMenu : Menu
 		}
 		hintTextController.FadeOut (0.35f);
 
+        AudioManager.instance.PlayEffect("Doors_Open");
+        AudioManager.instance.FadeOutMusic(0.5f);
+
 		doorController.OpenDoors ();
 		while (doorController.DoorsOpen != true) 
 		{
 			yield return null;
 		}
 
-		playButton.interactable = true;
+        playButton.interactable = true;
 		howToPlayButton.interactable = true;
 		quitButton.interactable = true;
 		settingsButton.interactable = true;

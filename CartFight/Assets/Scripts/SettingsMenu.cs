@@ -73,10 +73,14 @@ public class SettingsMenu : Menu
 		applyButton.interactable = false;
 
 		base.SelectSilently (GameObject.Find ("Back").GetComponent<Button> ());
+
+        base.onBackButtonPressed += this.ReturnToMainMenu;
 	}
 
-	private void Update()
+	public override void Update()
 	{
+        base.Update();
+
 		//Update the temporary variables.
 		tempResolution = Screen.resolutions [resolutionDropdown.value];
 		tempFullscreen = fullscreenToggle.isOn;

@@ -30,10 +30,14 @@ public class HowToPlay_Menu : Menu
 		base.SelectSilently (switchButton);
 
 		StartCoroutine (SetControlsActive (false, 0.0f));
+
+        base.onBackButtonPressed += this.ReturnToMenu;
 	}
 
-	private void Update()
+	public override void Update()
 	{
+        base.Update();
+
 		if (controlMenu) 
 		{
 			switchButton.GetComponentInChildren<Text> ().text = "Gameplay";

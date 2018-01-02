@@ -142,9 +142,13 @@ public class PlayerComponent : PausableObject
 						&& this.transform.parent.GetComponent<Player>().Velocity.magnitude 
 						>= this.transform.parent.GetComponent<Player>().maxVelocity / 2f) 
 					{
+                        AudioManager.instance.PlayEffect("CartHit");
 						ParticleManager.instance.CreateSparksAtCollision (other);
 						Camera_Controller.instance.Shake (.1f, .075f);
-					}
+
+                        //Controller rumble.
+                        this.transform.parent.GetComponent<Player>().TryVibrateGamepad(0.2f, 0.5f);
+                    }
 				}
 
 				//Debug.Log (this.gameObject.name + " has hit " + other.gameObject.name + "!");

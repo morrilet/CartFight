@@ -71,6 +71,8 @@ public class ResultsMenu : Menu
 
 		InstantiateResultsPanels ();
 		FormatResultsPanels ();
+
+        base.onBackButtonPressed += this.Quit;
 	}
 
 	////////// Custom Methods //////////
