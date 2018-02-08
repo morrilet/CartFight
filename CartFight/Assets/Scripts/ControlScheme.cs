@@ -16,6 +16,7 @@ public class ControlScheme
 	private PlayerIndex playerIndex; //The gamepad from which to get state info from if we're using a gamepad.
 	private float horizontal, vertical; //The input axes. -1 = left/down, 0 = no input, 1 = right/up.
 	private bool throwKeyDown = false;
+    private bool throwKeyHeld = false;
 	private bool pauseKeyDown = false;
     private bool isVibrating = false; //Whether or not we're currently vibrating the gamepad (if we use one).
 
@@ -40,6 +41,7 @@ public class ControlScheme
 	public float Horizontal { get { return this.horizontal; } }
 	public float Vertical { get { return this.vertical; } }
 	public bool ThrowKeyDown { get { return this.throwKeyDown; } }
+    public bool ThrowKeyHeld { get { return this.throwKeyHeld; } }
 	public bool PauseKeyDown { get { return this.pauseKeyDown; } }
     public bool IsVibrating {
         get { return this.isVibrating; }
@@ -121,6 +123,7 @@ public class ControlScheme
 			int prevTriggerRight = Mathf.CeilToInt (prevState.Triggers.Right);
 
 			throwKeyDown = ((currentTriggerRight == 1) && (prevTriggerRight == 0));
+            throwKeyHeld = (currentTriggerRight == 1);
 			pauseKeyDown = ((state.Buttons.Start == ButtonState.Pressed) 
 				&& (prevState.Buttons.Start == ButtonState.Released));
 
@@ -165,6 +168,8 @@ public class ControlScheme
 			{
 				throwKeyDown = false;
 			}
+
+            throwKeyHeld = Input.GetKey(throwKey);
 
 			if (Input.GetKeyDown (pauseKey)) 
 			{

@@ -118,18 +118,30 @@ public class PlayerComponent : PausableObject
 			{
 				if (this.GetComponent<Rigidbody2D> ().velocity.magnitude >= 10.0f) //If we're going fast enough
 				{
-					//If the other object has a player (not abandoned)
+					//If the other object has a player (not an abandoned cart)
 					if (other.transform.parent != null && other.transform.parent.GetComponent<Player> () != null)
 					{
 						//If neither of us are invulnerable
 						if (!invulnerable && !other.gameObject.GetComponent<PlayerComponent> ().invulnerable) 
 						{
-							other.transform.parent.GetComponent<Player> ().Die ();
+                            //If we're not using soulbound carts, just kill the player.
+                            //If we're using soulbound carts then we kill the player if...
+                            //    -We aren't their souldbound cart
+                            //    OR
+                            //    -We are their soulbound cart AND they're not calling us.
+                            if (!GameManager.instance.Settings.UseSoulboundCarts
+                                || !other.transform.parent.GetComponent<Player>().SoulboundCart.Equals(this.gameObject)
+                                || (other.transform.parent.GetComponent<Player>().SoulboundCart.Equals(this.gameObject)
+                                    && !other.transform.parent.GetComponent<Player>().AttractingCart))
+                            {
+                                other.transform.parent.GetComponent<Player>().Die();
+                            }
 						}
 					}
 				}
 			}
 		}
+
 		if ((1 << other.gameObject.layer) == 1 << LayerMask.NameToLayer("Obstacle")) 
 		{
 			if (OnHitObstacle != null && collidesWithObstacles) 

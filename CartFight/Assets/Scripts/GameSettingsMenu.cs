@@ -12,14 +12,39 @@ public class GameSettingsMenu : Menu
 	////////// Variables //////////
 
 	private static GameManager.GameSettings settings;
-	private List<Selectable> menuObjs;
+	private List<Selectable> gameMenuObjs;
+    private List<Selectable> mutatorMenuObjs;
 	private bool menuActive;
+    private bool showingMutators;
+    private bool isFlippingMenu;
+    private bool isOpeningMenu;
+
+    public GameObject mutatorButton;
+    public GameObject backButton;
+
+
+    [Space]
+    [Header("Normal Objects")]
 
 	public GameObject gameMode_SettingObj;
 	public GameObject timeLimit_SettingObj;
 	public GameObject scoreLimit_SettingObj;
 	public GameObject itemCount_SettingObj;
 	public GameObject level_SettingObj;
+
+    [Space]
+    public List<GameObject> normalObjs;
+
+    [Space]
+    [Header("Mutator Objects")]
+
+    public GameObject soulboundCart_SettingObj;
+    public GameObject killsAsScore_SettingsObj;
+    public GameObject cartLimit_SettingsObj;
+    public GameObject bombCount_SettingsObj;
+
+    [Space]
+    public List<GameObject> mutatorObjs;
 
 	////////// Accessors //////////
 
@@ -36,7 +61,7 @@ public class GameSettingsMenu : Menu
 		settings.ScoreLimit = 100;
 		settings.ItemCount = 3;
 		settings.Mode = GameManager.GameSettings.GameModes.ScoreAndTime;
-		settings.Level = GameManager.GameLevels.FaceOff;
+        settings.Level = GameManager.GameLevels.FaceOff;
 
 		//Set up the level dropdown
 		Dropdown dropdown_LS = level_SettingObj.transform.FindChild ("Level_Dropdown").GetComponent<Dropdown> ();
@@ -49,19 +74,33 @@ public class GameSettingsMenu : Menu
 		dropdown_LS.value = 0;
 		dropdown_LS.RefreshShownValue ();
 
-		Update (); //Update the game settings and UI before we deactivate the menu.
+		UpdateNormalUI (); //Update the game settings and UI before we deactivate the menu.
+        UpdateMutatorUI();
 
 		//Note that GetComponentsInChildren is recursive. Score.
 		Selectable[] temp = this.transform.GetComponentsInChildren<Selectable> ();
-		menuObjs = new List<Selectable> ();
+		gameMenuObjs = new List<Selectable> ();
+        mutatorMenuObjs = new List<Selectable>();
 		for (int i = 0; i < temp.Length; i++) 
 		{
-			menuObjs.Add (temp [i]);
+            if (temp[i].tag.Equals("GameSettings_Normal"))
+            {
+                gameMenuObjs.Add(temp[i]);
+            }
+            else if (temp[i].tag.Equals("GameSettings_Mutator"))
+            {
+                mutatorMenuObjs.Add(temp[i]);
+            }
+            else
+            {
+                Debug.Log("A menu object (game settings menu) is not properly tagged! It will be ignored.");
+            }
 		}
 		this.gameObject.SetActive (false);
 
 		menuActive = false;
-
+        isFlippingMenu = false;
+        
         base.onBackButtonPressed += this.CloseMenu;
 	}
 
@@ -69,18 +108,35 @@ public class GameSettingsMenu : Menu
 	{
         base.Update();
 
-		UpdateUI ();
+        if (!isFlippingMenu)
+        {
+            if (!showingMutators)
+            {
+                UpdateNormalUI();
+            }
+            else
+            {
+                UpdateMutatorUI();
+            }
+        }
+
+        if(Input.GetKeyDown(KeyCode.KeypadPlus))
+        {
+            Debug.Log(settings.ToString());
+        }
 	}
 
-	////////// Custom Methods //////////
+    ////////// Custom Methods //////////
 
-	private void UpdateUI()
-	{
-		UpdateGameModeUI ();
-		UpdateTimeLimitUI ();
-		UpdateScoreLimitUI ();
-		UpdateItemCountUI ();
-		UpdateLevelUI ();
+    #region Menu_Updates
+    #region Normal_Menu
+    private void UpdateNormalUI()
+    {
+        UpdateGameModeUI();
+        UpdateTimeLimitUI();
+        UpdateScoreLimitUI();
+        UpdateItemCountUI();
+        UpdateLevelUI();
 	}
 
 	private void UpdateGameModeUI()
@@ -135,7 +191,7 @@ public class GameSettingsMenu : Menu
 		}
 
 		minsUp.onClick.RemoveAllListeners ();
-		minsUp.onClick.AddListener (delegate() { Debug.Log("Here");settings.TimeLimit += 60; });
+		minsUp.onClick.AddListener (delegate() { settings.TimeLimit += 60; });
 
 		minsDown.onClick.RemoveAllListeners ();
 		minsDown.onClick.AddListener (delegate() { settings.TimeLimit -= 60; });
@@ -195,28 +251,113 @@ public class GameSettingsMenu : Menu
 
 		settings.Level = ((GameManager.GameLevels)dropdown.value);
 	}
+    #endregion
 
-	public void OpenMenu()
+    #region Mutator_Menu
+    private void UpdateMutatorUI()
+    {
+        UpdateSoulboundCartsUI();
+        UpdateKillsAsScoreUI();
+        UpdateCartLimitUI();
+        UpdateBombCountUI();
+    }
+
+    private void UpdateSoulboundCartsUI()
+    {
+        Toggle soulboundCarts_Toggle = soulboundCart_SettingObj.GetComponentInChildren<Toggle>();
+        settings.UseSoulboundCarts = soulboundCarts_Toggle.isOn;
+    }
+
+    private void UpdateKillsAsScoreUI()
+    {
+        Dropdown killsAsScore_Dropdown = killsAsScore_SettingsObj.GetComponentInChildren<Dropdown>();
+        switch (killsAsScore_Dropdown.value)
+        {
+            case 0: //Don't count kills.
+                settings.Kills = GameManager.GameSettings.KillsMode.None;
+                break;
+            case 1: //Count kills a part of score.
+                settings.Kills = GameManager.GameSettings.KillsMode.Include;
+                break;
+            case 2: //Count kills only.
+                settings.Kills = GameManager.GameSettings.KillsMode.Solo;
+                break;
+        }
+    }
+
+    private void UpdateCartLimitUI()
+    {
+        Toggle useCartLimit_Toggle = cartLimit_SettingsObj.GetComponentInChildren<Toggle>();
+        Button tickUp_Button = cartLimit_SettingsObj.transform.FindChild("CartLimit_Up_Button").GetComponent<Button>();
+        Button tickDown_Button = cartLimit_SettingsObj.transform.FindChild("CartLimit_Down_Button").GetComponent<Button>();
+        Text cartLimitCount_Text = cartLimit_SettingsObj.transform.FindChild("CartLimit_Count").GetComponent<Text>();
+
+        //Update settings to match cart limit toggle.
+        settings.UseCartLimit = useCartLimit_Toggle.isOn;
+
+        //Update UI.
+        tickUp_Button.interactable = settings.UseCartLimit;
+        tickDown_Button.interactable = settings.UseCartLimit;
+        cartLimitCount_Text.text = settings.CartLimit.ToString();
+
+        //Set up listeners.
+        tickUp_Button.onClick.RemoveAllListeners();
+        tickUp_Button.onClick.AddListener(delegate () { if(settings.CartLimit < 100) settings.CartLimit++; }); //Maybe put clamp code in the settings.CartLimit accessor.
+
+        tickDown_Button.onClick.RemoveAllListeners();
+        tickDown_Button.onClick.AddListener(delegate () { settings.CartLimit--; });
+    }
+
+    private void UpdateBombCountUI()
+    {
+        Slider bombCount_Slider = bombCount_SettingsObj.GetComponentInChildren<Slider>();
+        Text bombCountValue_Text = bombCount_SettingsObj.transform.FindChild("SliderValue_Text").GetComponent<Text>();
+
+        settings.BombCount = (int)bombCount_Slider.value;
+        bombCountValue_Text.text = settings.BombCount.ToString();
+    }
+    #endregion
+    #endregion
+
+    #region Menu_Transitions
+    public void OpenMenu()
 	{
 		menuActive = true;
 		this.gameObject.SetActive (true);
         AudioManager.instance.PlayEffect("PaperSlide_Enter");
+        
 		StartCoroutine (OpenMenu_Coroutine ());
 	}
 
 	public void CloseMenu()
 	{
+        if(isFlippingMenu || isOpeningMenu)
+        {
+            return;
+        }
+
         //Note that there is less here than in OpenMenu() because much of the
         //logic must be done after the animation finishes, in the coroutine.
         AudioManager.instance.PlayEffect("PaperSlide_Exit");
+        
 		StartCoroutine (CloseMenu_Coroutine ());
 	}
+
+    public void FlipMenu()
+    {
+        isFlippingMenu = true;
+        showingMutators = !showingMutators;
+
+        StartCoroutine(FlipMenu_Coroutine());
+    }
 
 	private IEnumerator OpenMenu_Coroutine()
 	{
         //Unselect any currently selected button so it can't be spammed
         //while we open the menu.
         //base.DeselectCurrentlySelected();
+
+        isOpeningMenu = true;
 
 		this.gameObject.SetActive (true);
 
@@ -226,23 +367,29 @@ public class GameSettingsMenu : Menu
         //Debug.Log (anim.gameObject.name);
         anim.SetBool ("MenuActive", true);
 
-		SetMenuInteractable (false);
+		SetMenuInteractable (gameMenuObjs, false);
+        SetMenuInteractable (mutatorMenuObjs, false);
+        mutatorButton.GetComponent<Selectable>().interactable = false;
+        backButton.GetComponent<Selectable>().interactable = false;
 
-		//Debug.Log (anim.GetCurrentAnimatorClipInfo(0).Length);
-		yield return new WaitForSeconds (anim.GetCurrentAnimatorClipInfo(0).Length);
+        //Debug.Log (anim.GetCurrentAnimatorClipInfo(0).Length);
+        yield return new WaitForSeconds(0.5f);//anim.GetCurrentAnimatorClipInfo(0).Length);
 
-		SetMenuInteractable (true);
+		SetMenuInteractable (gameMenuObjs, true);
+        mutatorButton.GetComponent<Selectable>().interactable = true;
 
-		//Select the OK button.
-		for (int i = 0; i < menuObjs.Count; i++)
+        //Select the OK button.
+        for (int i = 0; i < gameMenuObjs.Count; i++)
 		{
-			if (menuObjs [i].gameObject.name == "OK_Button") 
+			if (gameMenuObjs [i].gameObject.name == "OK_Button") 
 			{
-				Button tempButton = menuObjs [i] as Button;
+				Button tempButton = gameMenuObjs [i] as Button;
 				base.SelectSilently (tempButton);
 				break;
 			}
 		}
+
+        isOpeningMenu = false;
 	}
 
 	private IEnumerator CloseMenu_Coroutine()
@@ -251,13 +398,23 @@ public class GameSettingsMenu : Menu
 		anim.SetBool ("MenuActive", false);
 
 		menuActive = false;
-
-		SetMenuInteractable (false);
+        
+        SetMenuInteractable(gameMenuObjs, false);
+        SetMenuInteractable(mutatorMenuObjs, false);
+        mutatorButton.GetComponent<Selectable>().interactable = false;
+        backButton.GetComponent<Selectable>().interactable = false;
 
         base.DeselectCurrentlySelected();
 
-		//Debug.Log (anim.GetCurrentAnimatorClipInfo(0).Length);
-		yield return new WaitForSeconds (anim.GetCurrentAnimatorClipInfo (0).Length);
+        //Debug.Log (anim.GetCurrentAnimatorClipInfo(0).Length);
+        yield return new WaitForSeconds(0.3333f);//anim.GetCurrentAnimatorClipInfo (0).Length);
+        
+        if (showingMutators)
+        {
+            showingMutators = false;
+            SetObjectsEnabled(normalObjs, true);
+            SetObjectsEnabled(mutatorObjs, false);
+        }
 
         //Select the settings menu button.
         base.SelectSilently(GameObject.Find("Settings_Button").GetComponent<Button>());
@@ -266,11 +423,94 @@ public class GameSettingsMenu : Menu
         this.gameObject.SetActive (false);
 	}
 
-	private void SetMenuInteractable(bool interactable)
+    private IEnumerator FlipMenu_Coroutine()
+    {
+        //Debugging.
+        //UnityEditor.EditorApplication.isPaused = true;
+
+        SetMenuInteractable(gameMenuObjs, false);
+        SetMenuInteractable(mutatorMenuObjs, false);
+
+        //Play animation and wait until it's over.
+        Animator anim = this.GetComponent<Animator>();
+        if (showingMutators)
+        {
+            //anim.ResetTrigger("FlipToNormal");
+            //anim.SetTrigger("FlipToMutators");
+            anim.SetBool("ShowingMutators", true);
+        }
+        else
+        {
+            //anim.SetTrigger("FlipToNormal");
+            //anim.ResetTrigger("FlipToMutators");
+            anim.SetBool("ShowingMutators", false);
+        }
+
+        yield return new WaitForSeconds(0.175f);//anim.GetCurrentAnimatorClipInfo(0).Length);
+
+        SetObjectsEnabled(normalObjs, !showingMutators);
+        SetObjectsEnabled(mutatorObjs, showingMutators);
+
+        yield return new WaitForSeconds(0.325f);
+
+        if (showingMutators)
+        {
+            SetMenuInteractable(gameMenuObjs, false);
+            SetMenuInteractable(mutatorMenuObjs, true);
+
+            backButton.GetComponent<Selectable>().interactable = true;
+            mutatorButton.GetComponent<Selectable>().interactable = false;
+
+            //Select the back button.
+            for (int i = 0; i < gameMenuObjs.Count; i++)
+            {
+                if (gameMenuObjs[i].gameObject.name == "Back_Button")
+                {
+                    Button tempButton = gameMenuObjs[i] as Button;
+                    base.SelectSilently(tempButton);
+                    break;
+                }
+            }
+        }
+        else
+        {
+            SetMenuInteractable(gameMenuObjs, true);
+            SetMenuInteractable(mutatorMenuObjs, false);
+
+            backButton.GetComponent<Selectable>().interactable = false;
+            mutatorButton.GetComponent<Selectable>().interactable = true;
+
+            //Select the mutators button.
+            for (int i = 0; i < gameMenuObjs.Count; i++)
+            {
+                if (gameMenuObjs[i].gameObject.name == "Mutator_Button")
+                {
+                    Button tempButton = gameMenuObjs[i] as Button;
+                    base.SelectSilently(tempButton);
+                    break;
+                }
+            }
+        }
+
+        isFlippingMenu = false;
+    }
+    #endregion
+
+    #region Helper_Methods
+    private void SetMenuInteractable(List<Selectable> menuObjs, bool interactable)
 	{
 		for (int i = 0; i < menuObjs.Count; i++) 
 		{
 			menuObjs [i].interactable = interactable;
 		}
 	}
+
+    private void SetObjectsEnabled(List<GameObject> objs, bool enabled)
+    {
+        for(int i = 0; i < objs.Count; i++)
+        {
+            objs[i].SetActive(enabled);
+        }
+    }
+    #endregion
 }

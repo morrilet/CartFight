@@ -4,13 +4,13 @@ using System.Collections;
 /// <summary>
 /// This handles spawning players or items.
 /// </summary>
-public class SpawnPoint : MonoBehaviour 
+public class SpawnPoint : MonoBehaviour
 {
-	public GameObject doorsObject; //The doors used for spawning a player.
-	public GameObject safeZone; //The area in which the player doesn't collide with obstacles.
+    public GameObject doorsObject; //The doors used for spawning a player.
+    public GameObject safeZone; //The area in which the player doesn't collide with obstacles.
 
-	public bool isPlayerSpawn = false;
-	public bool isAvailable = true;
+    public bool isPlayerSpawn = false;
+    public bool isAvailable = true;
 
 	//Use these to set up the player/item to spawn, then set them back to null.
 	Player spawnedPlayer = null;
@@ -71,7 +71,7 @@ public class SpawnPoint : MonoBehaviour
 	{
 		if (isAvailable && isPlayerSpawn)
 		{
-			//Set up and return playerr for game manager before we do the effect...
+			//Set up and return player for game manager before we do the effect...
 			Player newPlayer = null; //The player we're spawning.
 
 			//Create the player using spawnedPlayer. This is because of some reference
@@ -142,10 +142,22 @@ public class SpawnPoint : MonoBehaviour
 		//Activate the safe zone.
 		StartCoroutine(SafezoneHandler_Coroutine(player));
 
-		yield return PausableWaitForSeconds_Coroutine (.5f);
+        //Dirty trick to keep the entry velocity high so that the player gets all the way in.
+        //We were already waiting for .5 secs with a pausable wait for seconds, but this serves two purposes.
+        float timer = 0.0f;
+        while (timer < 0.5f)
+        {
+            if(!GameManager.instance.IsPaused)
+            {
+                timer += Time.deltaTime;
+                player.Velocity = (Vector2)(player.transform.right * (player.maxVelocity * (1f - (timer / 0.5f)))) 
+                    + ((Vector2)transform.right * player.maxVelocity / 2f);
+            }
+            yield return null;
+        }
 
-		//Close the doors.
-		doorsObject.GetComponent<Animator> ().SetTrigger ("Activated");
+        //Close the doors.
+        doorsObject.GetComponent<Animator> ().SetTrigger ("Activated");
 
 		yield return PausableWaitForSeconds_Coroutine (1.0f);
 		doorsObject.SetActive (false);

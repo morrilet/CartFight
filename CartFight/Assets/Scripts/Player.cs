@@ -64,6 +64,13 @@ public class Player : PausableObject
 	private Coroutine invulnerableEffect;
 	private bool cartLerpEffectActive; //The carts lerp-to-position effect. 
 
+    //Testing this right now. (1/29/18)
+    GameObject soulboundCart = null;
+    bool attractingCart = false;
+
+    public GameObject SoulboundCart { get { return this.soulboundCart; } }
+    public bool AttractingCart { get { return this.attractingCart; } }
+
 	public void Start()
 	{
 		controlScheme.Start ();
@@ -115,7 +122,11 @@ public class Player : PausableObject
 		//This is later handled by the spawner.
 		SetInvulnerable (true);
 		EnableObstacleCollisions (false);
-	}
+
+        //Testing for now. (1/29/18)
+        soulboundCart = cartObj;
+        attractingCart = false;
+    }
 
 	void Update()
 	{
@@ -143,39 +154,84 @@ public class Player : PausableObject
 			{
 				MoveWithoutCart ();
 			}
-
+            
+            //TODO: Add this to a soulbound carts check. Throw logic should be separate, but pickup should all be in one if.
 			if (controlScheme.ThrowKeyDown && driver.collidesWithObstacles)
 			{
-				if (cartObj != null && !cartLerpEffectActive && cart.collidesWithObstacles) 
+				if (cartObj != null && !cartLerpEffectActive && cart.collidesWithObstacles)
 				{
+                    if (GameManager.instance.Settings.UseSoulboundCarts)
+                        attractingCart = false;
+
 					RemoveCart ((Vector3)velocity + (transform.right * 20f));
 				}
-				else //if (driverObj.GetComponent<Collider2D>().IsTouchingLayers(1 << LayerMask.NameToLayer("Cart")))
+				else
 				{
-					Debug.Log ("Trying to add cart...");
-					foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Cart"))
-					{
-						if (obj.transform.parent == null)
-						{
-							foreach (Collider2D coll in driver.Touching)
-							{
-								if (coll.gameObject.transform.Equals (obj.transform)) 
-								{
-									Debug.Log("Cart added! :: " + obj.name);
-									if (cartObj == null) //Double check this.
-									{
-										AddCart (obj);
+                    if (GameManager.instance.Settings.UseSoulboundCarts)
+                        attractingCart = true;
+
+                    //Debug.Log ("Trying to add cart...");
+                    foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Cart"))
+                    {
+                        if (obj.transform.parent == null)
+                        {
+                            foreach (Collider2D coll in driver.Touching)
+                            {
+                                if (coll.gameObject.transform.Equals(obj.transform))
+                                {
+                                    //Debug.Log("Cart added! :: " + obj.name);
+                                    if (cartObj == null) //Double check this.
+                                    {
+                                        //We can only add our own soulbound cart, assuming soulbound carts are enabled.
+                                        if (!GameManager.instance.Settings.UseSoulboundCarts || obj.Equals(soulboundCart))
+                                        {
+                                            AddCart(obj);
+                                        }
                                         break;
-									}
-								}
-							}
-						}
-					}
+                                    }
+                                }
+                            }
+                        }
+                    }
 				}
 			}
 
-			//Continually place driver and cart at their starting local positions.
-			driverObj.transform.localPosition = driverLocalPosition;
+            //Note: There will be an issue with this. As soon as we throw, we're also holding down. We must wait a bit (or wait
+            //until we let go and then hold) to start attracting again, but this is okay for now.
+            if (GameManager.instance.Settings.UseSoulboundCarts)
+            {
+                if (attractingCart)
+                {
+                    //Attract the cart first, so that it can't just snap into a stupid position.
+                    soulboundCart.GetComponent<Rigidbody2D>().AddForce(
+                        (driverObj.transform.position - soulboundCart.transform.position).normalized * 0.75f,
+                        ForceMode2D.Impulse);
+
+                    //Grab the (soulbound) cart if it's touching us.
+                    foreach (Collider2D coll in driver.Touching)
+                    {
+                        if (coll.gameObject.Equals(soulboundCart))
+                        {
+                            AddCart(soulboundCart);
+                            attractingCart = false;
+                            break;
+                        }
+                    }
+                }
+
+                //Maintain the attraction state if it's already been set (throw key pressed).
+                if(controlScheme.ThrowKeyHeld && attractingCart)
+                {
+                    attractingCart = true;
+                }
+                else
+                {
+                    attractingCart = false;
+                }
+            }
+
+            //Continually place driver and cart at their starting local positions.
+            driverObj.transform.localPosition = driverLocalPosition;
 			if (cartObj != null && !cartLerpEffectActive) 
 			{
 				cartObj.transform.localPosition = cartLocalPosition;
@@ -492,17 +548,12 @@ public class Player : PausableObject
 			if (cartObj != null && other.transform.parent != null && other.transform.parent.GetComponent<Player>() != null)
 			{
 				impactForce = (velocity /*- other.transform.parent.GetComponent<Player> ().velocity*/).magnitude;
-				Debug.LogFormat ("Player Velocity :: {0} --- Cart Velocity :: {1}", 
-					velocity, cartObj.GetComponent<Rigidbody2D> ().velocity);
 			}
 			//Or if we don't have a cart and the other object has a player parent.
 			else if(other.transform.parent != null && other.transform.parent.GetComponent<Player>() != null)
 			{
 				impactForce = (cartObjPrev.GetComponent<Rigidbody2D> ().velocity.magnitude); //- 
 					//other.transform.parent.GetComponent<Player> ().velocity).magnitude;
-				
-				Debug.LogFormat ("Player Velocity :: {0} --- Cart Velocity :: {1}", 
-					velocity, cartObjPrev.GetComponent<Rigidbody2D> ().velocity);
 			}
 
 			//Reflect current velocity with moderate dampening.
@@ -511,16 +562,15 @@ public class Player : PausableObject
 			//If we're going fast enough, kill the other driver.
 			if (impactForce >= 10f) 
 			{
-				//Debug.Log ("-----Driver killed-----");
-				Debug.LogFormat ("{0} killed {1}", playerNumber.ToString (), 
-					other.transform.parent.gameObject.GetComponent<Player> ().playerNumber.ToString ());
+                //Debug.Log ("-----Driver killed-----");
 
-				//Kill the driver.
-				other.transform.parent.gameObject.GetComponent<Player> ().Die ();
+                //Kill the driver.
+                other.transform.parent.gameObject.GetComponent<Player>().Die();
 
                 //Controller rumble.
                 this.TryVibrateGamepad(0.5f, 1.0f);
-                other.transform.parent.GetComponent<Player>().TryVibrateGamepad(0.5f, 1.0f);
+                if(other.transform.parent != null && other.transform.parent.GetComponent<Player>() != null)
+                    other.transform.parent.GetComponent<Player>().TryVibrateGamepad(0.5f, 1.0f);
             }
 		}
 	}

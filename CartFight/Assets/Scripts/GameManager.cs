@@ -42,11 +42,13 @@ public class GameManager : MonoBehaviour
 
 	///////// Custom Data //////////
 
+    //TODO: Add a random option. The issue here comes from selecting retry on a random level.
 	public enum GameLevels
 	{
 		FaceOff,
 		FastTrack,
 		Convenience,
+        Arena,
 		LevelCount //The number of levels in this enum. Must be last.
 	};
 
@@ -56,56 +58,115 @@ public class GameManager : MonoBehaviour
 		public int points;
 	}
 
+    /// <summary>
+    /// A list of settings that are used to determine gameplay parameters.
+    /// </summary>
 	public struct GameSettings
-	{
-		private int timeLimit;
-		private int scoreLimit;
-		private int itemCount;
+    {
+        //Declarations//
+        //Normal stuff.
+        private int timeLimit;
+        private int scoreLimit;
+        private int itemCount;
 
-		private bool useTimeLimit;
-		private bool useScoreLimit;
+        private bool useTimeLimit;
+        private bool useScoreLimit;
 
-		private GameManager.GameLevels level;
+        private GameManager.GameLevels level;
 
-		public enum GameModes
-		{
-			Score,
-			Time,
-			ScoreAndTime
-		};
-		private GameModes gameMode;
+        public enum GameModes
+        {
+            Score,
+            Time,
+            ScoreAndTime
+        };
+        private GameModes gameMode;
 
-		public int TimeLimit { get { return this.timeLimit; } set { timeLimit = value; 
-				if (timeLimit <= 0) { timeLimit = 0; } } }
-		public int ScoreLimit { get { return this.scoreLimit; } set { scoreLimit = value; 
-				if (scoreLimit <= 0) { scoreLimit = 0; } } }
-		public int ItemCount { get { return this.itemCount; } set { itemCount = value; 
-				if (itemCount <= 0) { itemCount = 0; } } }
-		public bool UseTimeLimit { get { return this.useTimeLimit; } }
-		public bool UseScoreLimit { get { return this.useScoreLimit; } }
-		public GameLevels Level { get { return this.level; } set { level = value; } }
-		public GameModes Mode { 
-			get { return this.gameMode; } 
-			set 
-			{ 
-				switch (value) 
-				{
-				case GameModes.Score:
-					useTimeLimit = false;
-					useScoreLimit = true;
-					break;
-				case GameModes.Time:
-					useTimeLimit = true;
-					useScoreLimit = false;
-					break;
-				case GameModes.ScoreAndTime:
-					useTimeLimit = true;
-					useScoreLimit = true;
-					break;
-				}
-				gameMode = value; 
-			}
-		}
+        //Mutator stuff.
+        private bool useSoulboundCarts; //Whether or not to use soulbound carts.
+        private bool useCartLimit; //Do we limit the (abandoned) carts in the game?
+        private int cartLimit; //How many abandoned carts are we limited to?
+        private int bombCount; //How many bombs will be in play at once. 
+
+        /// <summary>
+        /// How we handle kills in terms of score.
+        /// None: Kills do not count towards score.
+        /// Include: Kills are included in score calculations.
+        /// Solo: Kills are the only way to score points. Regular score calculation is ignored.
+        /// </summary>
+        public enum KillsMode
+        {
+            None,
+            Include,
+            Solo
+        };
+        private KillsMode killsMode;
+        //End declarations//
+
+        //Accessors//
+        //Normal stuff.
+        public int TimeLimit { get { return this.timeLimit; } set { timeLimit = value;
+                if (timeLimit <= 0) { timeLimit = 0; } } }
+        public int ScoreLimit { get { return this.scoreLimit; } set { scoreLimit = value;
+                if (scoreLimit <= 0) { scoreLimit = 0; } } }
+        public int ItemCount { get { return this.itemCount; } set { itemCount = value;
+                if (itemCount <= 0) { itemCount = 0; } } }
+        public bool UseTimeLimit { get { return this.useTimeLimit; } }
+        public bool UseScoreLimit { get { return this.useScoreLimit; } }
+        public GameLevels Level { get { return this.level; } set { level = value; } }
+        public GameModes Mode {
+            get { return this.gameMode; }
+            set
+            {
+                switch (value)
+                {
+                    case GameModes.Score:
+                        useTimeLimit = false;
+                        useScoreLimit = true;
+                        break;
+                    case GameModes.Time:
+                        useTimeLimit = true;
+                        useScoreLimit = false;
+                        break;
+                    case GameModes.ScoreAndTime:
+                        useTimeLimit = true;
+                        useScoreLimit = true;
+                        break;
+                }
+                gameMode = value;
+            }
+        }
+
+        //Mutator stuff.
+        public bool UseSoulboundCarts { get { return this.useSoulboundCarts; } set { this.useSoulboundCarts = value; } }
+        public bool UseCartLimit { get { return this.useCartLimit; } set { this.useCartLimit = value; } }
+        public int CartLimit { get { return this.cartLimit; } set { this.cartLimit = value;
+                if (cartLimit <= 0) cartLimit = 0; } }
+        public int BombCount { get { return this.bombCount; } set { this.bombCount = value;
+                if (this.bombCount <= 0) this.bombCount = 0; } }
+        public KillsMode Kills { get { return this.killsMode; } set { this.killsMode = value; } }
+        //End accessors//
+
+        public override string ToString()
+        {
+            return string.Format("Normal Settings: " +
+                "\n\tTime Limit: {0}" +
+                "\n\tScore Limit: {1}" +
+                "\n\tItem Count: {2}" +
+                "\n\tUse Time Limit: {3}" +
+                "\n\tUse Score Limit: {4}" +
+                "\n\tLevel: {5}" +
+                "\n\tGame Mode: {6}" +
+                "\nMutators: " +
+                "\n\tUse Soulbound Carts: {7}" +
+                "\n\tUse Cart Limit: {8}" +
+                "\n\tCart Limit: {9}" +
+                "\n\tBomb Count: {10}" +
+                "\n\tKills Mode: {11}",
+                this.timeLimit, this.scoreLimit, this.itemCount, this.useTimeLimit, this.useScoreLimit,
+                this.level.ToString(), this.gameMode.ToString(), this.useSoulboundCarts, this.useCartLimit,
+                this.cartLimit, this.bombCount, this.killsMode.ToString());
+        }
 	}
 
 	///////// Accessors //////////
@@ -137,12 +198,16 @@ public class GameManager : MonoBehaviour
 		GetPlayerSpawnPoints();
 		GetItemSpawnPoints ();
 
-		//At start, all player/item spawn points are available.
-		availablePlayerSpawnPoints = playerSpawnPoints;
-		availableItemSpawnPoints = itemSpawnPoints;
+        //At start, all player/item spawn points are available.
+        availablePlayerSpawnPoints = new List<SpawnPoint>();
+		availableItemSpawnPoints = new List<SpawnPoint>();
 
-		//Set up players from the static joined players list from the lobby manager.
-		players = new PlayerData[LobbyManager.JoinedPlayerData.Count];
+        //Update spawn points.
+        UpdateAvailablePlayerSpawns();
+        UpdateAvailableItemSpawns();
+
+        //Set up players from the static joined players list from the lobby manager.
+        players = new PlayerData[LobbyManager.JoinedPlayerData.Count];
 		for (int i = 0; i < players.Length; i++) 
 		{
 			players [i].player = SpawnPlayer (LobbyManager.JoinedPlayerData[i].PlayerNumber, 
@@ -196,7 +261,7 @@ public class GameManager : MonoBehaviour
 	void Update()
 	{
 		//Pause the game if any players pause button is down.
-		//This is handed here (not in ControlScheme.cs) because we want to
+		//This is handled here (not in ControlScheme.cs) because we want to
 		//be able to pause even when the player trying to pause is dead.
 		for (int i = 0; i < pauseKeys.Length; i++)
 		{
@@ -206,15 +271,10 @@ public class GameManager : MonoBehaviour
 				break;
 			}
 		}
-		///Handle pausing for gamepads outside of the (volatile) control scheme class.
+
+		//Handle pausing for gamepads outside of the (volatile) control scheme class.
 		for (int i = 0; i < currPauseStates.Length; i++) 
 		{
-			if (players [i].player.playerNumber == Player.PlayerNumber.P1) 
-			{
-				Debug.Log ("CurrStart : " + currPauseStates[i].Buttons.Start);
-				Debug.Log ("PrevStart : " + prevPauseStates[i].Buttons.Start + "\n\n\n\n");
-			}
-
 			if (currPauseStates [i].Buttons.Start == ButtonState.Pressed
 			   && prevPauseStates [i].Buttons.Start == ButtonState.Released) 
 			{
@@ -335,15 +395,16 @@ public class GameManager : MonoBehaviour
 	{
 		Player newPlayer;
 
-		//There may be an issue with choosing a random spawn point when two players die in
-		//quick succession.
-		UpdateAvailablePlayerSpawns (); //Ensure that our avalable spawns list is accurate.
+        //There may be an issue with choosing a random spawn point when two players die in
+        //quick succession.
+        //^THIS.
+        UpdateAvailablePlayerSpawns (); //Ensure that our available spawns list is accurate.
 		int spawnerIndex = Random.Range (0, availablePlayerSpawnPoints.Count); //Choose a random index from available spawns.
 		newPlayer = availablePlayerSpawnPoints [spawnerIndex].SpawnPlayer (pNumber, seconds);
 		newPlayer.controlScheme = controls;
 
-		//Replace the player of the same player number in our players array with the new player.
-		for (int i = 0; i < players.Length; i++)
+        //Replace the player of the same player number in our players array with the new player.
+        for (int i = 0; i < players.Length; i++)
 		{
 			if (players [i].player != null) 
 			{
@@ -396,7 +457,7 @@ public class GameManager : MonoBehaviour
 			if (playerSpawnPoints [i].isAvailable) 
 			{
 				//If an available spawn point isn't listed in the available list...
-				if (!availablePlayerSpawnPoints.Contains (playerSpawnPoints [i])) 
+				if (!availablePlayerSpawnPoints.Contains(playerSpawnPoints[i])) 
 				{
 					availablePlayerSpawnPoints.Add (playerSpawnPoints [i]);
 				}
@@ -410,6 +471,10 @@ public class GameManager : MonoBehaviour
 				}
 			}
 		}
+
+        //Debugging...
+        Debug.Log("Player Spawn Points = " + playerSpawnPoints.Count);
+        Debug.Log("Available Player Spawn Points = " + availablePlayerSpawnPoints.Count);
 	}
 
 	private void UpdateAvailableItemSpawns()

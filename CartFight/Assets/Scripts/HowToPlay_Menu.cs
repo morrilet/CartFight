@@ -29,10 +29,10 @@ public class HowToPlay_Menu : Menu
 
 		base.SelectSilently (switchButton);
 
-		StartCoroutine (SetControlsActive (false, 0.0f));
-
         base.onBackButtonPressed += this.ReturnToMenu;
-	}
+
+        StartCoroutine(SetControlsActive(false, 0.0f));
+    }
 
 	public override void Update()
 	{
@@ -215,7 +215,7 @@ public class HowToPlay_Menu : Menu
 			timer += Time.deltaTime;
 			yield return null;
 		}
-
+        
 		//Set control elements to their end values.
 		for (int i = 0; i < controlsTexts.Length; i++) 
 		{

@@ -33,7 +33,7 @@ public class GUI : MonoBehaviour
 		}
 
 		public Text getText() { return this.text; }
-		public void setText(Text text) { this.text = text; }
+		public void setText(Text text) { this.text.text = text.text; }
 		public Player.PlayerNumber getPlayerNumber() { return this.playerNumber; }
 		public Coroutine StressEffect { 
 			get { return this.stressEffect; } 
@@ -59,6 +59,7 @@ public class GUI : MonoBehaviour
 
 
 	////////// Primary Methods //////////
+    //TODO: Add a setting for Arena!
 	public void Start()
 	{
 		InitializeScoreTexts ();

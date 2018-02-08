@@ -12,7 +12,10 @@ public class LobbyManager : MonoBehaviour
 	public string gameSceneName; //The scene to load when the game is started.
 	public string mainMenuName;
 
-	public LobbyPanel[] lobbyPanels = new LobbyPanel[4]; //The panels that have joined the game. 
+    [SerializeField]
+    private GameSettingsMenu settingsMenu; //The settings menu to use.
+
+    public LobbyPanel[] lobbyPanels = new LobbyPanel[4]; //The panels that have joined the game. 
 														 //(Each panel represents one player)
 	private List<ControlScheme> availableControlSchemes; //The control schemes still available for use.
 	private ControlScheme wasd_Controls;
@@ -31,9 +34,6 @@ public class LobbyManager : MonoBehaviour
 	private GamePadState[] gamepad_PrevStates; //Houses the previous states for gamepads 1-4 (0-3).
 
 	private int currentJoinedPlayerCount;
-
-	[SerializeField]
-	private GameSettingsMenu settingsMenu; //The settings menu to use.
 
 	////////// Accessors //////////
 
@@ -66,9 +66,6 @@ public class LobbyManager : MonoBehaviour
 
 		InitializeControlSchemes ();
 		InitializeAvailableControlSchemes ();
-
-		//Get the settings menu to pull settings from.
-		//settingsMenu = GameObject.Find ("GameSettings_Menu").GetComponent<GameSettingsMenu>();
 	}
 
 	void Update()
@@ -78,8 +75,13 @@ public class LobbyManager : MonoBehaviour
 		{
 			gamepad_States [i] = GamePad.GetState ((PlayerIndex)i);
 		}
+        
+        for (int i = 0; i < lobbyPanels.Length; i++)
+        {
+            lobbyPanels[i].canPing = !settingsMenu.MenuActive;
+        }
 
-		if (settingsMenu.GetComponent<GameSettingsMenu> ().MenuActive) 
+        if (settingsMenu.GetComponent<GameSettingsMenu> ().MenuActive) 
 		{
 			return;
 		}
