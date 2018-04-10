@@ -25,6 +25,12 @@ public class GameManager : MonoBehaviour
 	private List<SpawnPoint> itemSpawnPoints; //The spawn points for items.
 	private List<SpawnPoint> availableItemSpawnPoints;
 
+    private List<SpawnPoint> bombSpawnPoints; //The spawn points for bombs.
+    private List<SpawnPoint> availableBombSpawnPoints;
+    private List<Bomb> currentBombs; //All the bombs in play at the moment.
+
+    private Dictionary<GameObject, float> abandonedCarts; //The abandoned carts in the game, paired with their age.
+
 	public Canvas pauseMenu; //The pause menu GUI canvas.
 	private bool isPaused;
 
@@ -41,7 +47,7 @@ public class GameManager : MonoBehaviour
 	private GamePadState[] prevPauseStates; //A list of the previous gamepad states of all the gamepad players. Used for pausing.
 
 	///////// Custom Data //////////
-
+    
     //TODO: Add a random option. The issue here comes from selecting retry on a random level.
 	public enum GameLevels
 	{
@@ -87,6 +93,7 @@ public class GameManager : MonoBehaviour
         private bool useCartLimit; //Do we limit the (abandoned) carts in the game?
         private int cartLimit; //How many abandoned carts are we limited to?
         private int bombCount; //How many bombs will be in play at once. 
+        private int killValue; //How much each kill is worth (if they're being tracked).
 
         /// <summary>
         /// How we handle kills in terms of score.
@@ -140,10 +147,20 @@ public class GameManager : MonoBehaviour
         //Mutator stuff.
         public bool UseSoulboundCarts { get { return this.useSoulboundCarts; } set { this.useSoulboundCarts = value; } }
         public bool UseCartLimit { get { return this.useCartLimit; } set { this.useCartLimit = value; } }
-        public int CartLimit { get { return this.cartLimit; } set { this.cartLimit = value;
-                if (cartLimit <= 0) cartLimit = 0; } }
+        public int CartLimit
+        {
+            get { return this.cartLimit; }
+            set
+            {
+                this.cartLimit = value;
+                if (cartLimit <= 1) { cartLimit = 1; }
+                if (cartLimit >= 100) { cartLimit = 100; }
+            }
+        }
         public int BombCount { get { return this.bombCount; } set { this.bombCount = value;
                 if (this.bombCount <= 0) this.bombCount = 0; } }
+        public int KillValue { get { return this.killValue; } set { this.killValue = value;
+                if (this.killValue <= 0) this.killValue = 0; } }
         public KillsMode Kills { get { return this.killsMode; } set { this.killsMode = value; } }
         //End accessors//
 
@@ -162,10 +179,11 @@ public class GameManager : MonoBehaviour
                 "\n\tUse Cart Limit: {8}" +
                 "\n\tCart Limit: {9}" +
                 "\n\tBomb Count: {10}" +
-                "\n\tKills Mode: {11}",
+                "\n\tKills Mode: {11}" +
+                "\n\tKill Value: {12}",
                 this.timeLimit, this.scoreLimit, this.itemCount, this.useTimeLimit, this.useScoreLimit,
                 this.level.ToString(), this.gameMode.ToString(), this.useSoulboundCarts, this.useCartLimit,
-                this.cartLimit, this.bombCount, this.killsMode.ToString());
+                this.cartLimit, this.bombCount, this.killsMode.ToString(), this.killValue);
         }
 	}
 
@@ -197,14 +215,20 @@ public class GameManager : MonoBehaviour
 		//Get the item/player spawn points procedurally.
 		GetPlayerSpawnPoints();
 		GetItemSpawnPoints ();
+        GetBombSpawnPoints();
 
         //At start, all player/item spawn points are available.
         availablePlayerSpawnPoints = new List<SpawnPoint>();
 		availableItemSpawnPoints = new List<SpawnPoint>();
+        availableBombSpawnPoints = new List<SpawnPoint>();
 
         //Update spawn points.
         UpdateAvailablePlayerSpawns();
         UpdateAvailableItemSpawns();
+        UpdateAvailableBombSpawns();
+
+        //Instantiate as empty.
+        abandonedCarts = new Dictionary<GameObject, float>();
 
         //Set up players from the static joined players list from the lobby manager.
         players = new PlayerData[LobbyManager.JoinedPlayerData.Count];
@@ -214,9 +238,11 @@ public class GameManager : MonoBehaviour
 				LobbyManager.JoinedPlayerData[i].Controls, 0.0f);
 		}
 
-		//Spawn the items.
-		SpawnStartingItems (settings.ItemCount);
-			
+        //Spawn the items.
+        SpawnStartingItems(settings.ItemCount);
+
+        currentBombs = new List<Bomb>();
+
 		//Grab all of the pause keys.
 		pauseKeys = new KeyCode[players.Length];
 		for (int i = 0; i < players.Length; i++) 
@@ -298,31 +324,33 @@ public class GameManager : MonoBehaviour
 		if (isPaused)
 			return;
 
-		//Hand out points to all players with items.
-		if (pointTimer >= pointInterval) 
-		{
-			pointTimer = 0.0f;
-			for (int i = 0; i < players.Length; i++) 
-			{
-				AddPointsToPlayer (players [i].player, players [i].player.carriedItems.Count);
-				GUI.instance.UpdateScoreTexts ();
-			}
+        //Hand out points to all players with items.
+        if (settings.Kills != GameSettings.KillsMode.Solo)
+        {
+            if (pointTimer >= pointInterval)
+            {
+                pointTimer = 0.0f;
+                for (int i = 0; i < players.Length; i++)
+                {
+                    AddPointsToPlayer(players[i].player, players[i].player.carriedItems.Count);
+                }
+            }
+        }
+        
+        //Check to see if anyone has won the game.
+        for (int i = 0; i < players.Length; i++)
+        {
+            if (players[i].points >= settings.ScoreLimit && settings.UseScoreLimit)
+            {
+                players[i].points = settings.ScoreLimit;
+                GUI.instance.UpdateScoreTexts();
+                GUI.instance.TimeText.gameObject.SetActive(false);
 
-			//Check to see if anyone has won the game.
-			for (int i = 0; i < players.Length; i++) 
-			{
-				if (players [i].points >= settings.ScoreLimit && settings.UseScoreLimit) 
-				{
-					players [i].points = settings.ScoreLimit;
-					GUI.instance.UpdateScoreTexts ();
-					GUI.instance.TimeText.gameObject.SetActive (false);
+                GoToResultsMenu();
+            }
+        }
 
-					GoToResultsMenu ();
-				}
-			}
-		}
-
-		if (settings.UseTimeLimit) 
+        if (settings.UseTimeLimit) 
 		{
 			//If time is up, end the game.
 			if (gameTimer >= settings.TimeLimit) 
@@ -340,10 +368,73 @@ public class GameManager : MonoBehaviour
 		pointTimer += Time.deltaTime;
 	}
 
-	///////// Custom Methods //////////
+    //Do list updating here if it's not super important. Keeps us from scrubbing lists > 60 times a second.
+    private void FixedUpdate()
+    {
+        //Update the abandoned carts list and act on the results.
+        GameObject[] tmp = GameObject.FindGameObjectsWithTag("Cart");
+        foreach(GameObject pc in tmp)
+        {
+            if (pc.transform.parent == null && !abandonedCarts.ContainsKey(pc)) //Cart is abandoned and not in the list.
+            {
+                abandonedCarts.Add(pc, 0.0f);
+            }
+            else if (pc.transform.parent == null && abandonedCarts.ContainsKey(pc)) //Cart is abandoned and in the list.
+            {
+                abandonedCarts[pc] += Time.deltaTime;
+            }
+            else if (pc.transform.parent != null && abandonedCarts.ContainsKey(pc)) //Cart is not abandoned and in the list.
+            {
+                abandonedCarts.Remove(pc);
+            }
+        }
 
-	//Opens the results menu, which in turn marks the end of the current game.
-	private void GoToResultsMenu()
+        //If we need to remove a cart, only remove them if they're the oldest 
+        //and have been alive for more than a second.
+        if (abandonedCarts.Count > settings.CartLimit && settings.UseCartLimit)
+        {
+            if (abandonedCarts.Count > 0)
+            {
+                KeyValuePair<GameObject, float> oldestPair =
+                    new KeyValuePair<GameObject, float>(null, float.NegativeInfinity);
+                foreach (KeyValuePair<GameObject, float> pair in abandonedCarts)
+                {
+                    if(pair.Value > oldestPair.Value)
+                    {
+                        oldestPair = pair;
+                    }
+                }
+                if(oldestPair.Value >= 1.0f)
+                {
+                    //TODO: Make an actual method in cart or some shit. Pretty this up with fading or explosions.
+                    //Also note that this creates a huge issue with soulbound carts when the player is recalling their 
+                    //cart after it's been destroyed. Fix that shit.
+                    GameObject particles = GameObject.Instantiate(Resources.Load("RemoveCartParticles")) as GameObject;
+                    particles.transform.position = oldestPair.Key.transform.position;
+                    foreach(Item i in oldestPair.Key.GetComponentsInChildren<Item>())
+                    {
+                        i.GetRemovedFromCart();
+                    }
+                    abandonedCarts.Remove(oldestPair.Key);
+                    GameObject.Destroy(oldestPair.Key);
+                }
+            }
+        }
+
+        //Add new bombs, remove when null (exploded).
+        currentBombs = currentBombs.Where(x => x != null).ToList();
+        if(currentBombs.Count < settings.BombCount)
+        {
+            //Magic number: The length of time to wait before showing the bomb because of the
+            //hardcoded particle system times.
+            currentBombs.Add(SpawnBomb(2.25f));
+        }
+    }
+
+    ///////// Custom Methods //////////
+
+    //Opens the results menu, which in turn marks the end of the current game.
+    private void GoToResultsMenu()
 	{
 		AudioManager.instance.StopMusic ();
 		SceneManager.LoadScene ("Results");
@@ -351,7 +442,7 @@ public class GameManager : MonoBehaviour
 
 	//Adds points to a player in the players list.
 	//(Be sure that our players list always stays up to date to avoid errors...)
-	private void AddPointsToPlayer(Player player, int value)
+	public void AddPointsToPlayer(Player player, int value)
 	{
 		for (int i = 0; i < players.Length; i++) 
 		{
@@ -360,27 +451,33 @@ public class GameManager : MonoBehaviour
 				players [i].points += value;
 			}
 		}
-	}
+        GUI.instance.UpdateScoreTexts();
+    }
 
-	//Spawns all of the items for the start (and duration) of the game.
-	private void SpawnStartingItems(int count)
+    //Spawns all of the items for the start (and duration) of the game.
+    //This doesn't define any spawn behaviours, it simply calls them.
+    private void SpawnStartingItems(int count)
 	{
 		//Pick a random number from 0 to the number of item types, then we'll use this
 		//as the offset to cycle item types when spawning items.
 		int numItemTypes = System.Enum.GetNames(typeof(Item.ItemType)).Length;
-		int itemTypeCounter = Random.Range (0, numItemTypes);
+		int itemTypeCounter = Random.Range (0, numItemTypes - 1); //- 1 because bombs will always be the last option.
 
-		for (int i = 0; i < count; i++) 
+        for (int i = 0; i < count; i++) 
 		{
-			//Pick an item type. Just grab the next type in the list, cycling through it.
-			Item.ItemType type = (Item.ItemType)(itemTypeCounter % numItemTypes);
+            //Pick an item type. Just grab the next type in the list, cycling through it.
+            Item.ItemType type = (Item.ItemType)(itemTypeCounter);
 			SpawnItem (type, 0.0f); //Spawn it immediately.
 
-			itemTypeCounter++;
-		}
+            //Increment.
+            itemTypeCounter++;
+            //Clamp.
+			itemTypeCounter = itemTypeCounter % (numItemTypes - 1); //- 1 because bombs will always be the last option.
+        }
 	}
 
-	private Item SpawnItem(Item.ItemType itemType, float seconds)
+    #region SpawningMethods
+    private Item SpawnItem(Item.ItemType itemType, float seconds)
 	{
 		Item newItem;
 
@@ -420,15 +517,28 @@ public class GameManager : MonoBehaviour
 
 		return newPlayer;
 	}
+    
+    public Bomb SpawnBomb(float seconds)
+    {
+        Bomb newBomb;
 
-	private void GetPlayerSpawnPoints()
+        UpdateAvailableBombSpawns();
+        int spawnerIndex = Random.Range(0, availableBombSpawnPoints.Count);
+        newBomb = availableBombSpawnPoints[spawnerIndex].SpawnBomb(seconds);
+        
+        return newBomb;
+    }
+    #endregion
+
+    #region GetSpawnPoints
+    private void GetPlayerSpawnPoints()
 	{
 		GameObject[] temp = GameObject.FindGameObjectsWithTag("SpawnPoint");
 		playerSpawnPoints = new List<SpawnPoint> ();
 		for (int i = 0; i < temp.Length; i++)
 		{
 			SpawnPoint spawnPoint = temp [i].GetComponent<SpawnPoint> ();
-			if (spawnPoint.isPlayerSpawn) 
+			if (spawnPoint.isPlayerSpawn && !spawnPoint.isBombSpawn) 
 			{
 				playerSpawnPoints.Add (spawnPoint);
 			}
@@ -442,15 +552,31 @@ public class GameManager : MonoBehaviour
 		for (int i = 0; i < temp.Length; i++)
 		{
 			SpawnPoint spawnPoint = temp [i].GetComponent<SpawnPoint> ();
-			if (!spawnPoint.isPlayerSpawn) 
+			if (!spawnPoint.isPlayerSpawn && !spawnPoint.isBombSpawn) 
 			{
 				itemSpawnPoints.Add (spawnPoint);
 			}
 		}
 	}
 
-	//Checks updates the list of spawn points available for player respawns.
-	private void UpdateAvailablePlayerSpawns()
+    private void GetBombSpawnPoints()
+    {
+        GameObject[] temp = GameObject.FindGameObjectsWithTag("SpawnPoint");
+        bombSpawnPoints = new List<SpawnPoint>();
+        for(int i = 0; i < temp.Length; i++)
+        {
+            SpawnPoint spawnPoint = temp[i].GetComponent<SpawnPoint>();
+            if(!spawnPoint.isPlayerSpawn && spawnPoint.isBombSpawn)
+            {
+                bombSpawnPoints.Add(spawnPoint);
+            }
+        }
+    }
+    #endregion
+
+    #region UpdateSpawnPoints
+    //Checks updates the list of spawn points available for player respawns.
+    private void UpdateAvailablePlayerSpawns()
 	{
 		for (int i = 0; i < playerSpawnPoints.Count; i++) 
 		{
@@ -473,8 +599,8 @@ public class GameManager : MonoBehaviour
 		}
 
         //Debugging...
-        Debug.Log("Player Spawn Points = " + playerSpawnPoints.Count);
-        Debug.Log("Available Player Spawn Points = " + availablePlayerSpawnPoints.Count);
+        //Debug.Log("Player Spawn Points = " + playerSpawnPoints.Count);
+        //Debug.Log("Available Player Spawn Points = " + availablePlayerSpawnPoints.Count);
 	}
 
 	private void UpdateAvailableItemSpawns()
@@ -509,7 +635,40 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	public void SetPaused(bool isPaused)
+    private void UpdateAvailableBombSpawns()
+    {
+        int availableCount = 0;
+        for (int i = 0; i < bombSpawnPoints.Count; i++)
+        {
+            if (bombSpawnPoints[i].isAvailable)
+            {
+                //If an available spawn point isn't listed in the available list...
+                if (!availableBombSpawnPoints.Contains(bombSpawnPoints[i]))
+                {
+                    availableBombSpawnPoints.Add(bombSpawnPoints[i]);
+                }
+
+                availableCount++;
+            }
+            else
+            {
+                //If an unavailable spawn point is listed in the available list...
+                if (availableBombSpawnPoints.Contains(bombSpawnPoints[i]))
+                {
+                    availableBombSpawnPoints.Remove(bombSpawnPoints[i]);
+                }
+            }
+        }
+
+        //No available spawners...
+        if (availableCount == 0)
+        {
+            Debug.Log("We've run out of bomb spawners! Create more or lower the bomb count.");
+        }
+    }
+    #endregion
+
+    public void SetPaused(bool isPaused)
 	{
 		this.isPaused = isPaused;
 
@@ -537,6 +696,7 @@ public class GameManager : MonoBehaviour
 	{
 		GetPlayerSpawnPoints ();
 		GetItemSpawnPoints ();
+        GetBombSpawnPoints ();
 
 		//Draw player spawn points...
 		if (playerSpawnPoints.Count > 0) 
@@ -558,7 +718,7 @@ public class GameManager : MonoBehaviour
 			}
 		}
 
-		//Draw item spawn points...
+        //Draw item spawn points...
 		if (itemSpawnPoints.Count > 0) 
 		{
 			for (int i = 0; i < itemSpawnPoints.Count; i++) 
@@ -567,5 +727,15 @@ public class GameManager : MonoBehaviour
 				Gizmos.DrawWireSphere (itemSpawnPoints [i].transform.position, 0.25f);
 			}
 		}
-	}
+
+        //Draw bomb spawn points...
+        if (bombSpawnPoints.Count > 0)
+        {
+            for (int i = 0; i < bombSpawnPoints.Count; i++)
+            {
+                Gizmos.color = Color.gray;
+                Gizmos.DrawWireSphere(bombSpawnPoints[i].transform.position, 0.25f);
+            }
+        }
+    }
 }

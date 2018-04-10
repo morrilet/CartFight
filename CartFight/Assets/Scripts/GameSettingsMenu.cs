@@ -42,6 +42,7 @@ public class GameSettingsMenu : Menu
     public GameObject killsAsScore_SettingsObj;
     public GameObject cartLimit_SettingsObj;
     public GameObject bombCount_SettingsObj;
+    public GameObject killValue_SettingsObj;
 
     [Space]
     public List<GameObject> mutatorObjs;
@@ -62,6 +63,13 @@ public class GameSettingsMenu : Menu
 		settings.ItemCount = 3;
 		settings.Mode = GameManager.GameSettings.GameModes.ScoreAndTime;
         settings.Level = GameManager.GameLevels.FaceOff;
+
+        settings.UseSoulboundCarts = false;
+        settings.UseCartLimit = false;
+        settings.CartLimit = 10;
+        settings.BombCount = 2;
+        settings.Kills = GameManager.GameSettings.KillsMode.None;
+        settings.KillValue = 5;
 
 		//Set up the level dropdown
 		Dropdown dropdown_LS = level_SettingObj.transform.FindChild ("Level_Dropdown").GetComponent<Dropdown> ();
@@ -260,6 +268,7 @@ public class GameSettingsMenu : Menu
         UpdateKillsAsScoreUI();
         UpdateCartLimitUI();
         UpdateBombCountUI();
+        UpdateKillValueUI();
     }
 
     private void UpdateSoulboundCartsUI()
@@ -300,9 +309,9 @@ public class GameSettingsMenu : Menu
         tickDown_Button.interactable = settings.UseCartLimit;
         cartLimitCount_Text.text = settings.CartLimit.ToString();
 
-        //Set up listeners.
+        //Set up listeners. Note that clamping is handled in the settings accessor.
         tickUp_Button.onClick.RemoveAllListeners();
-        tickUp_Button.onClick.AddListener(delegate () { if(settings.CartLimit < 100) settings.CartLimit++; }); //Maybe put clamp code in the settings.CartLimit accessor.
+        tickUp_Button.onClick.AddListener(delegate () { settings.CartLimit++; });
 
         tickDown_Button.onClick.RemoveAllListeners();
         tickDown_Button.onClick.AddListener(delegate () { settings.CartLimit--; });
@@ -315,6 +324,25 @@ public class GameSettingsMenu : Menu
 
         settings.BombCount = (int)bombCount_Slider.value;
         bombCountValue_Text.text = settings.BombCount.ToString();
+    }
+
+    private void UpdateKillValueUI()
+    {
+        Text killValue_Text = killValue_SettingsObj.transform.FindChild("KillValue_Count").GetComponent<Text>();
+        Button tickUp_Button = killValue_SettingsObj.transform.FindChild("KillValue_Up_Button").GetComponent<Button>();
+        Button tickDown_Button = killValue_SettingsObj.transform.FindChild("KillValue_Down_Button").GetComponent<Button>();
+
+        //Update UI.
+        tickUp_Button.interactable = (settings.Kills != GameManager.GameSettings.KillsMode.None);
+        tickDown_Button.interactable = (settings.Kills != GameManager.GameSettings.KillsMode.None);
+        killValue_Text.text = settings.KillValue.ToString();
+
+        //Set up listeners. Note that clamping is handled in the settings accessor.
+        tickUp_Button.onClick.RemoveAllListeners();
+        tickUp_Button.onClick.AddListener(delegate () { settings.KillValue++; });
+
+        tickDown_Button.onClick.RemoveAllListeners();
+        tickDown_Button.onClick.AddListener(delegate () { settings.KillValue--; });
     }
     #endregion
     #endregion

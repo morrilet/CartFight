@@ -30,7 +30,7 @@ public class ParticleManager : MonoBehaviour
 	{
 		ParticleSystem system = ((GameObject)Instantiate (Resources.Load (name), 
 			position, rotation)).GetComponent<ParticleSystem> ();
-		system.transform.SetParent (this.transform);
+		system.transform.SetParent (instance.transform);
 		system.Play ();
 	}
 
@@ -40,9 +40,9 @@ public class ParticleManager : MonoBehaviour
 			position, rotation)).GetComponent<ParticleSystem> ();
 		system.transform.SetParent (parent);
 		system.Play ();
-	}
+    }
 
-	public void CreateParticles(string name, Vector3 position, Quaternion rotation, Color startColor)
+    public void CreateParticles(string name, Vector3 position, Quaternion rotation, Color startColor)
 	{
 		ParticleSystem system = ((GameObject)Instantiate (Resources.Load (name), 
 			position, rotation)).GetComponent<ParticleSystem> ();

@@ -10,11 +10,14 @@ public class SpawnPoint : MonoBehaviour
     public GameObject safeZone; //The area in which the player doesn't collide with obstacles.
 
     public bool isPlayerSpawn = false;
+    public bool isBombSpawn = false;
+
     public bool isAvailable = true;
 
 	//Use these to set up the player/item to spawn, then set them back to null.
 	Player spawnedPlayer = null;
 	Item spawnedItem = null;
+    Bomb spawnedBomb = null;
 
 	private void Start()
 	{
@@ -41,9 +44,35 @@ public class SpawnPoint : MonoBehaviour
 		}
 	}
 
+    public Bomb SpawnBomb(float seconds)
+    {
+        if(isAvailable && !isPlayerSpawn && isBombSpawn)
+        {
+            Bomb newBomb = null;
+
+            GameObject temp = (GameObject)Instantiate(Resources.Load("Bomb"),
+                this.transform.position, this.transform.rotation);
+            spawnedBomb = temp.GetComponent<Bomb>();
+
+            newBomb = spawnedBomb;
+            spawnedBomb = null;
+
+            newBomb.gameObject.SetActive(false);
+            Instantiate(Resources.Load("SpawnBombParticles"), this.transform.position, this.transform.rotation);
+            StartCoroutine(ActivateObject_Coroutine(newBomb.gameObject, seconds));
+
+            return newBomb;
+        }
+        else
+        {
+            Debug.Log("Error! Tried to spawn a bomb at an unusable spawn point.");
+            return null;
+        }
+    }
+
 	public Item SpawnItem(Item.ItemType itemType, float seconds)
 	{
-		if (isAvailable && !isPlayerSpawn)
+		if (isAvailable && !isPlayerSpawn & !isBombSpawn)
 		{
 			Item newItem = null;
 
@@ -69,7 +98,7 @@ public class SpawnPoint : MonoBehaviour
 
 	public Player SpawnPlayer(Player.PlayerNumber pNumber, float seconds)
 	{
-		if (isAvailable && isPlayerSpawn)
+		if (isAvailable && isPlayerSpawn && !isBombSpawn)
 		{
 			//Set up and return player for game manager before we do the effect...
 			Player newPlayer = null; //The player we're spawning.

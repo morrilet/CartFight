@@ -15,7 +15,7 @@ public class PlayAreaEnforcer : MonoBehaviour
         //MUAHHAHAHA FUCK YOU AAAAAALLLLLLLLLLLLL!
         if(other.GetComponentInParent<Player>() != null)
         {
-            other.GetComponentInParent<Player>().Die();
+            other.GetComponentInParent<Player>().Die(null);
         }
     }
 }

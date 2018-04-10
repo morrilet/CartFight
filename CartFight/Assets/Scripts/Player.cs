@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using XInputDotNetPure;
@@ -71,7 +72,10 @@ public class Player : PausableObject
     public GameObject SoulboundCart { get { return this.soulboundCart; } }
     public bool AttractingCart { get { return this.attractingCart; } }
 
-	public void Start()
+    public GameObject CartObj { get { return this.cartObj; } }
+    public GameObject DriverObj { get { return this.driverObj; } }
+
+    public void Start()
 	{
 		controlScheme.Start ();
 
@@ -135,6 +139,8 @@ public class Player : PausableObject
 		if (IsPaused)
 			return;
 
+        carriedItems.RemoveAll(item => item == null);
+
 		if (isAlive) 
 		{
 			if (invulnerable && invulnerableTimer >= invulnerableTime) 
@@ -195,26 +201,27 @@ public class Player : PausableObject
                     }
 				}
 			}
-
-            //Note: There will be an issue with this. As soon as we throw, we're also holding down. We must wait a bit (or wait
-            //until we let go and then hold) to start attracting again, but this is okay for now.
+            
             if (GameManager.instance.Settings.UseSoulboundCarts)
             {
                 if (attractingCart)
                 {
                     //Attract the cart first, so that it can't just snap into a stupid position.
-                    soulboundCart.GetComponent<Rigidbody2D>().AddForce(
-                        (driverObj.transform.position - soulboundCart.transform.position).normalized * 0.75f,
-                        ForceMode2D.Impulse);
-
-                    //Grab the (soulbound) cart if it's touching us.
-                    foreach (Collider2D coll in driver.Touching)
+                    if (soulboundCart != null)
                     {
-                        if (coll.gameObject.Equals(soulboundCart))
+                        soulboundCart.GetComponent<Rigidbody2D>().AddForce(
+                            (driverObj.transform.position - soulboundCart.transform.position).normalized * 0.75f,
+                            ForceMode2D.Impulse);
+
+                        //Grab the (soulbound) cart if it's touching us.
+                        foreach (Collider2D coll in driver.Touching)
                         {
-                            AddCart(soulboundCart);
-                            attractingCart = false;
-                            break;
+                            if (coll.gameObject.Equals(soulboundCart))
+                            {
+                                AddCart(soulboundCart);
+                                attractingCart = false;
+                                break;
+                            }
                         }
                     }
                 }
@@ -340,18 +347,24 @@ public class Player : PausableObject
 		cartObj.transform.localRotation = rotation;
 		cartLerpEffectActive = false;
 	}
-
+    
 	//Places our currently carried items into a cart.
 	private void PutItemsInCart(GameObject cartObj)
 	{
 		//++i makes no copy of i and is faster. No bugs because of the limited use case here.
 		for (int i = 0; i < carriedItems.Count; ++i) 
 		{
-			carriedItems [i].GetDropped ();
-			//Note that carts are ~3 units long, but items are ~1 unit so we use 2 here.
-			float offset = (2f / carriedItems.Count) * i;
-			offset = (carriedItems.Count > 1) ? offset - 0.5f : offset;
-			carriedItems [i].GetPlacedInCart (cartObj, offset);
+            if (carriedItems[i] != null && carriedItems[i].isPickedUp())
+            {
+                Item tmp = carriedItems[i];
+
+                //Note that carts are ~3 units long, but items are ~1 unit so we use 2 here.
+                float offset = (2f / carriedItems.Count) * i;
+                offset = (carriedItems.Count > 1) ? offset - 0.5f : offset;
+
+                tmp.GetDropped();
+                tmp.GetPlacedInCart(cartObj, offset); //This has caused a null reference exception in the past. Why?
+            }
 		}
 		carriedItems = new List<Item> ();
 	}
@@ -367,11 +380,17 @@ public class Player : PausableObject
 		}
 	}
 
-	//Adds an item to the carried items list.
-	private void PickupItem(Item item)
+    #region ItemManipulation
+    //Adds an item to the carried items list.
+    public void PickupItem(Item item)
 	{
+        //Take the chance to scrub our carried items list before we add more to it.
+        carriedItems = carriedItems.Where(x => x != null).ToList();
+
 		item.GetPickedUpByPlayer (this.GetComponent<Player> ());
 
+        //Sort of magic number-y. These relate to the size of items in the game, and
+        //create a comfortable buffer between objects.
 		item.followDistance = 2.5f + (1.25f * carriedItems.Count);
 		item.speed = 4.0f / (1.0f + carriedItems.Count);
 
@@ -404,9 +423,49 @@ public class Player : PausableObject
 		AudioManager.instance.PlayEffect ("PickupFood");
 	}
 
-	public void Die()
+    //Remove an item from the carried items list.
+    public void DropItem(Item i)
+    {
+        //Scrub our carried items list.
+        carriedItems = carriedItems.Where(x => x != null).ToList();
+
+        carriedItems.Remove(i);
+        UpdateItemFollowDistances();
+    }
+
+    private void UpdateItemFollowDistances()
+    {
+        try
+        {
+            for (int i = 0; i < carriedItems.Count; i++)
+            {
+                carriedItems[i].followDistance = 2.5f + (1.25f * i);
+                carriedItems[i].speed = 4.0f / (1.0f + i);
+            }
+        }
+        catch(System.NullReferenceException e)
+        {
+            throw new System.NullReferenceException("Tried to update the follow distance of a null item. " +
+                "Be sure that the list is scrubbed before you try to update follow distances.");
+        }
+    }
+    #endregion
+
+    public void Die(Player killer)
 	{
 		isAlive = false;
+
+        if(GameManager.instance.Settings.Kills != GameManager.GameSettings.KillsMode.None)
+        {
+            if(killer != null && killer != this)
+            {
+                GameManager.instance.AddPointsToPlayer(killer, GameManager.instance.Settings.KillValue);
+            }
+            else if (killer == null)
+            {
+                Debug.LogWarning("A player has been killed by a null killer. Ensure that it was a play-area death.");
+            }
+        }
 
 		//Moderate screen shake.
 		Camera_Controller.instance.Shake(.35f, .5f);
@@ -416,15 +475,17 @@ public class Player : PausableObject
 
 		//Unhook the player from the player components...
 		//(Not doing this for cart because it's handled in remove cart.)
-		//UnhookDriverEvents ();
 		driver.UnhookEvents();
 
 		//Remove all collected objects.
 		//Debug.Log(carriedItems.Count);
 		for (int i = 0; i < carriedItems.Count; i++)
 		{
-			//Debug.Log (carriedItems[i].gameObject.name);
-			carriedItems [i].GetDropped ();
+            //Debug.Log (carriedItems[i].gameObject.name);
+            if (carriedItems[i] != null)
+            {
+                carriedItems[i].GetDropped();
+            }
 		}
 		carriedItems.RemoveRange (0, carriedItems.Count);
 
@@ -433,11 +494,7 @@ public class Player : PausableObject
 		{
 			RemoveCart (transform.right * 5.0f);
 		}
-			
-		//Blood effects. Removed because I didn't think they fit the theme.
-		//ParticleManager.instance.CreateParticles("Blood", driverObj.transform.position, Quaternion.identity);
-		//ParticleManager.instance.CreateDecal("BloodDecal", this.transform.position, this.transform.rotation);
-
+		
 		//Remove the driver and start the death animation. Driver is destroyed after this.
 		driverObj.GetComponent<Animator> ().SetBool ("isAlive", false);
 		driverObj.GetComponent<Animator> ().speed = 1.0f;
@@ -448,7 +505,6 @@ public class Player : PausableObject
 		driverObj.transform.SetParent (null);
 
 		Destroy (this.gameObject);
-		//Destroy (this.gameObject, 3f);
 	}
 
 	public void HitItem(Collision2D other)
@@ -565,7 +621,7 @@ public class Player : PausableObject
                 //Debug.Log ("-----Driver killed-----");
 
                 //Kill the driver.
-                other.transform.parent.gameObject.GetComponent<Player>().Die();
+                other.transform.parent.gameObject.GetComponent<Player>().Die(this);
 
                 //Controller rumble.
                 this.TryVibrateGamepad(0.5f, 1.0f);

@@ -8,10 +8,14 @@ using System.Collections.Generic;
 /// </summary>
 public class PlayerComponent : PausableObject 
 {
-	//public LayerMask layerMask; //The objects that can hit us.
-	//Collider2D coll; //The collider attached to this game object.
+    //public LayerMask layerMask; //The objects that can hit us.
+    //Collider2D coll; //The collider attached to this game object.
 
-	public delegate void OnHitAction (Collision2D collision);
+    //The last known non-null parent player. 
+    //Used to keep track of previous owners of abandoned carts.
+    private Player storedPlayer;
+
+    public delegate void OnHitAction (Collision2D collision);
 
 	public event OnHitAction OnHitCart; //An event for when we hit a cart.
 	public event OnHitAction OnHitDriver; //An event for when we hit a driver.
@@ -44,12 +48,27 @@ public class PlayerComponent : PausableObject
 		if (this.GetComponent<Animator> () != null) 
 		{
 			this.GetComponent<Animator> ().speed = (IsPaused) ? 0 : 1;
-		}
+        }
 
-		if (this.transform.parent == null) //Abandoned cart.
+        if(this.transform.parent != null)
+        {
+            storedPlayer = this.transform.parent.GetComponent<Player>();
+        }
+
+        //Filter the touching list...
+        for (int i = 0; i < touching.Count; i++)
+        {
+            if (!GetComponent<Collider2D>().IsTouching(touching[i]))
+            {
+                touching.Remove(touching[i]);
+            }
+        }
+
+        if (this.transform.parent == null) //Abandoned cart.
 		{
 			//Ignore collisions with anything that's invulnerable.
 			//PlayerComponent[] invulnerableComponents = GameObject.fin
+            //(4/6/2018) What...? Gameobject.fin? God, sometimes I fucking hate you, past Ethan.
 
 			if (IsPaused && !IsPausedPrev) //Just paused...
 			{
@@ -134,7 +153,7 @@ public class PlayerComponent : PausableObject
                                 || (other.transform.parent.GetComponent<Player>().SoulboundCart.Equals(this.gameObject)
                                     && !other.transform.parent.GetComponent<Player>().AttractingCart))
                             {
-                                other.transform.parent.GetComponent<Player>().Die();
+                                other.transform.parent.GetComponent<Player>().Die(storedPlayer);
                             }
 						}
 					}

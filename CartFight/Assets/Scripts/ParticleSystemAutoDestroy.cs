@@ -1,23 +1,37 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class ParticleSystemAutoDestroy : MonoBehaviour 
 {
-	private ParticleSystem system;
+    [SerializeField]
+	private List<ParticleSystem> systems;
 
-	private void Start()
-	{
-		system = GetComponent<ParticleSystem> ();
-	}
+    private void Start()
+    {
+        if(systems.Count == 0)
+        {
+            systems.Add(this.GetComponent<ParticleSystem>());
+        }
+    }
 
-	private void Update()
+    private void Update()
 	{
-		if (system != null) 
-		{
-			if (!system.IsAlive ()) 
-			{
-				Destroy (this.gameObject);
-			}
-		}
+        bool allFinished = true;
+        for (int i = 0; i < systems.Count; i++)
+        {
+            if(systems[i] != null)
+            {
+                if(systems[i].IsAlive())
+                {
+                    allFinished = false;
+                }
+            }
+        }
+
+        if(allFinished)
+        {
+            Destroy(this.gameObject);
+        }
 	}
 }
