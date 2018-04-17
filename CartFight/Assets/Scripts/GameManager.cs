@@ -46,6 +46,8 @@ public class GameManager : MonoBehaviour
 	private GamePadState[] currPauseStates; //A list of the current gamepad states of all the gamepad players. Used for pausing.
 	private GamePadState[] prevPauseStates; //A list of the previous gamepad states of all the gamepad players. Used for pausing.
 
+    const float START_GAME_DELAY = 3.0f;
+
 	///////// Custom Data //////////
     
     //TODO: Add a random option. The issue here comes from selecting retry on a random level.
@@ -232,19 +234,25 @@ public class GameManager : MonoBehaviour
 
         //Set up players from the static joined players list from the lobby manager.
         players = new PlayerData[LobbyManager.JoinedPlayerData.Count];
-		for (int i = 0; i < players.Length; i++) 
-		{
-			players [i].player = SpawnPlayer (LobbyManager.JoinedPlayerData[i].PlayerNumber, 
-				LobbyManager.JoinedPlayerData[i].Controls, 0.0f);
-		}
+        for (int i = 0; i < players.Length; i++)
+        {
+            players[i].player = SpawnPlayer(LobbyManager.JoinedPlayerData[i].PlayerNumber,
+                LobbyManager.JoinedPlayerData[i].Controls, START_GAME_DELAY);
+        }
 
         //Spawn the items.
         SpawnStartingItems(settings.ItemCount);
-
+        
+        //Spawn the starting bombs.
         currentBombs = new List<Bomb>();
+        while (currentBombs.Count < settings.BombCount)
+        {
+            //No delay because we're spawning them immediately at the beginning.
+            currentBombs.Add(SpawnBomb(0.0f));
+        }
 
-		//Grab all of the pause keys.
-		pauseKeys = new KeyCode[players.Length];
+        //Grab all of the pause keys.
+        pauseKeys = new KeyCode[players.Length];
 		for (int i = 0; i < players.Length; i++) 
 		{
 			pauseKeys [i] = (players [i].player.controlScheme.PauseKey);
@@ -282,9 +290,12 @@ public class GameManager : MonoBehaviour
 		AudioManager.instance.PlayMusic ("Videogame2");
 
 		GUI.instance.Start ();
-	}
 
-	void Update()
+        //Show the intro text stuff.
+        //StartCoroutine(ShowIntro((START_GAME_DELAY / 10.0f) * 9.0f)); //Math to only do the intro for 90% of the delay.
+    }
+
+    void Update()
 	{
 		//Pause the game if any players pause button is down.
 		//This is handled here (not in ControlScheme.cs) because we want to
@@ -690,9 +701,43 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	///////// Gizmos //////////
+    /// <summary>
+    /// Shows the intro text at the start of the game.
+    /// </summary>
+    /// <param name="length">How long the intro should last.</param>
+    private IEnumerator ShowIntro(float length)
+    {
+        float t = 0;
+        while (t < length)
+        {
+            if(!isPaused)
+            {
+                t += Time.deltaTime;
+            }
+            yield return null;
+        }
+    }
+    
+    /// <summary>
+    /// Shows the outro effects at the end of the game but before we switch to the results menu.
+    /// </summary>
+    /// <param name="length">How long the outro should last.</param>
+    private IEnumerator ShowOutro(float length)
+    {
+        float t = 0;
+        while (t < length)
+        {
+            if (!isPaused)
+            {
+                t += Time.deltaTime;
+            }
+            yield return null;
+        }
+    }
 
-	void OnDrawGizmos ()
+    ///////// Gizmos //////////
+
+    void OnDrawGizmos ()
 	{
 		GetPlayerSpawnPoints ();
 		GetItemSpawnPoints ();

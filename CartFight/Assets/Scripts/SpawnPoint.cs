@@ -58,7 +58,10 @@ public class SpawnPoint : MonoBehaviour
             spawnedBomb = null;
 
             newBomb.gameObject.SetActive(false);
-            Instantiate(Resources.Load("SpawnBombParticles"), this.transform.position, this.transform.rotation);
+            if (seconds > 0.0f) //If we want the bomb immediately, don't bother with particles.
+            {
+                Instantiate(Resources.Load("SpawnBombParticles"), this.transform.position, this.transform.rotation);
+            }
             StartCoroutine(ActivateObject_Coroutine(newBomb.gameObject, seconds));
 
             return newBomb;

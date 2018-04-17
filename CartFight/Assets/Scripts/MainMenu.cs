@@ -122,8 +122,8 @@ public class MainMenu : Menu
 		quitButton.interactable = true;
 		settingsButton.interactable = true;
 
-		//Select it silently b/c it's the default button to select.
-		SelectSilently(playButton);
+        //Select it silently b/c it's the default button to select.
+        SelectButtonInEventSystem(playButton, true);
 	}
 
 	private IEnumerator StartHintText_Coroutine(float entryDelay)

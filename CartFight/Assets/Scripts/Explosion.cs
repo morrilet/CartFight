@@ -15,11 +15,28 @@ public class Explosion : PausableObject
 
     private float timer = 0.0f;
 
+    private void Start()
+    {
+        AudioManager.instance.PlayEffect("Explosion");
+    }
+
     private void Update()
     {
         if(!IsPaused && timer <= DAMAGE_DURATION)
         {
             timer += Time.deltaTime;
+        }
+
+        foreach(ParticleSystem ps in GetComponentsInChildren<ParticleSystem>())
+        {
+            if(IsPaused && !ps.isPaused)
+            {
+                ps.Pause();
+            }
+            else if (!IsPaused && ps.isPaused)
+            {
+                ps.Play();
+            }
         }
     }
 

@@ -14,6 +14,7 @@ public class SettingsMenu : Menu
 	private Slider effectVolumeSlider;
 	private Text effectVolumeText;
 	private Button applyButton;
+    private Button backButton;
 
 	private Resolution oldResolution, tempResolution;
 	private bool oldFullscreen, tempFullscreen;
@@ -32,6 +33,7 @@ public class SettingsMenu : Menu
 		effectVolumeSlider = GameObject.Find ("EffectVolume_Slider").GetComponent<Slider> ();
 		effectVolumeText = GameObject.Find ("EffectSliderValue_Text").GetComponent<Text> ();
 		applyButton = GameObject.Find ("Apply").GetComponent<Button> ();
+        backButton = GameObject.Find("Back").GetComponent<Button>();
 
 		//Set the starting variables to the appropriate values.
 		oldResolution = Screen.currentResolution;
@@ -72,7 +74,7 @@ public class SettingsMenu : Menu
 		effectVolumeText.text = (int)effectVolumeSlider.value + "%";
 		applyButton.interactable = false;
 
-		base.SelectSilently (GameObject.Find ("Back").GetComponent<Button> ());
+		base.SelectButtonInEventSystem (backButton, true);
 
         base.onBackButtonPressed += this.ReturnToMainMenu;
 	}
@@ -125,6 +127,8 @@ public class SettingsMenu : Menu
 		AudioManager.instance.EffectVolume = tempEffectVolume;
 
 		Debug.Log ("NEW_MVOL: " + AudioManager.instance.MusicVolume);
+
+        base.SelectButtonInEventSystem(backButton, true);
 
 		//For debugging.
 		/*

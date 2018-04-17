@@ -37,6 +37,9 @@ public class PlayerComponent : PausableObject
 	private Vector2 storedVelocity;
 	private float storedAngularVelocity;
 
+    private float safetyTimer = 0.0f;
+    private float safetyTime = 0.1f;
+
 	void Start () 
 	{
 		//coll = GetComponent<Collider2D> ();
@@ -53,6 +56,14 @@ public class PlayerComponent : PausableObject
         if(this.transform.parent != null)
         {
             storedPlayer = this.transform.parent.GetComponent<Player>();
+            safetyTimer = 0.0f;
+        }
+        else
+        {
+            if (safetyTimer <= safetyTime)
+            {
+                safetyTimer += Time.deltaTime;
+            }
         }
 
         //Filter the touching list...
@@ -153,7 +164,15 @@ public class PlayerComponent : PausableObject
                                 || (other.transform.parent.GetComponent<Player>().SoulboundCart.Equals(this.gameObject)
                                     && !other.transform.parent.GetComponent<Player>().AttractingCart))
                             {
-                                other.transform.parent.GetComponent<Player>().Die(storedPlayer);
+                                //Check to make sure our cart can't kill us for a short time after it's thrown.
+                                //This, as well as the safetyTime(r) were added to fix a bug that causes a thrown cart
+                                //to instantly kill its thrower. (4/13/2018)
+                                if (other.gameObject.transform.parent.gameObject != storedPlayer.gameObject 
+                                    || (safetyTimer >= safetyTime))
+                                {
+                                    //Debug.Log("HERE DEAD! Stored player is " + storedPlayer.playerNumber);
+                                    other.transform.parent.GetComponent<Player>().Die(storedPlayer);
+                                }
                             }
 						}
 					}

@@ -18,6 +18,7 @@ public class Menu : MonoBehaviour
     /// The method header for a 'back' behaviour.
     /// </summary>
     public delegate void backBehaviour();
+
     /// <summary>
     /// An event that triggers when the player presses a dedicated
     /// back button, such as the 'B' button or 'Esc'. This does not
@@ -38,8 +39,19 @@ public class Menu : MonoBehaviour
 
     public virtual void Awake()
     {
-        buttons = this.transform.GetComponentsInChildren<Button>();
+        //True to include currently inactive buttons (looking at you, mutator menu).
+        buttons = this.transform.GetComponentsInChildren<Button>(true);
         SetUpButtons();
+
+        //Ensure any non-interactable objects are skipped.
+        foreach(Selectable select in this.GetComponentsInChildren<Selectable>(true))
+        {
+            select.gameObject.AddComponent<SkipNonInteractable>();
+            if(select.gameObject.GetComponent<SelectableSoundController>() == null)
+            {
+                select.gameObject.AddComponent<SelectableSoundController>();
+            }
+        }
     }
 
     public virtual void Start()
@@ -134,7 +146,8 @@ public class Menu : MonoBehaviour
 	/// <param name="silent">If set to <c>true</c> silent.</param>
 	public void SetButtonSilent(Button button, bool silent)
 	{
-		button.GetComponent<ButtonSoundController> ().Silent = silent;
+        if(button.GetComponent<ButtonSoundController>() != null)
+		    button.GetComponent<ButtonSoundController> ().Silent = silent;
 	}
 
 	/// <summary>
@@ -161,17 +174,21 @@ public class Menu : MonoBehaviour
     /// Selects the button in this scenes event system.
     /// </summary>
     /// <param name="button">Button to select.</param>
-    public void SelectButtonInEventSystem(Button button)
+    public void SelectButtonInEventSystem(Button button, bool silent = false)
 	{
-		StartCoroutine (SelectButtonInEventSystem_Coroutine (button));
+		StartCoroutine (SelectButtonInEventSystem_Coroutine (button, silent));
 	}
 
-	//We use this so that we can wait a frame and force the event system to refresh.
-	private IEnumerator SelectButtonInEventSystem_Coroutine(Button button)
+    //We use this so that we can wait a frame and force the event system to refresh.
+    private IEnumerator SelectButtonInEventSystem_Coroutine(Button button, bool silent)
 	{
-		EventSystem system = GameObject.FindObjectOfType<EventSystem> ();
+        if (silent) { SetButtonSilent(button, true); }
+
+        yield return new WaitForEndOfFrame();
+        EventSystem system = GameObject.FindObjectOfType<EventSystem> ();
 		system.SetSelectedGameObject (null);
-		yield return new WaitForEndOfFrame ();
 		system.SetSelectedGameObject (button.gameObject);
-	}
+
+        if (silent) { SetButtonSilent(button, false); }
+    }
 }

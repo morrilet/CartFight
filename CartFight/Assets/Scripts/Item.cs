@@ -27,6 +27,10 @@ public class Item : PausableObject
 
 	private Coroutine movingCoroutine; //This houses the coroutine that we use for lerping to a position.
 
+    //Used for pausing and resuming.
+    private Vector2 storedRBVelocity;
+    private float storedRBAngularVelocity;
+
 	public virtual void Start()
 	{
 		GetComponent<SpriteRenderer> ().sprite = itemImages [(int) itemType];
@@ -36,10 +40,32 @@ public class Item : PausableObject
 
 	public virtual void Update()
 	{
-		if (IsPaused)
-			return;
+        if(IsPaused && !IsPausedPrev)
+        {
+            if (GetComponent<Rigidbody2D>() != null)
+            {
+                storedRBVelocity = GetComponent<Rigidbody2D>().velocity;
+                storedRBAngularVelocity = GetComponent<Rigidbody2D>().angularVelocity;
 
-		if (pickedUp) 
+                GetComponent<Rigidbody2D>().velocity = Vector2.zero;
+                GetComponent<Rigidbody2D>().angularVelocity = 0f;
+            }
+        }
+        else if(!IsPaused && IsPausedPrev)
+        {
+            if (GetComponent<Rigidbody2D>() != null)
+            {
+                GetComponent<Rigidbody2D>().velocity = storedRBVelocity;
+                GetComponent<Rigidbody2D>().angularVelocity = storedRBAngularVelocity;
+            }
+        }
+
+		if (IsPaused)
+        {
+            return;
+        }
+
+        if (pickedUp) 
 		{
 			FollowPlayer ();
 		}

@@ -104,7 +104,14 @@ public class GameSettingsMenu : Menu
                 Debug.Log("A menu object (game settings menu) is not properly tagged! It will be ignored.");
             }
 		}
-		this.gameObject.SetActive (false);
+
+        mutatorButton.GetComponent<ButtonSoundController>().selectSound = "PaperSlide_Exit";
+        mutatorButton.GetComponent<ButtonSoundController>().clickSound = "PaperSlide_Enter";
+
+        backButton.GetComponent<ButtonSoundController>().selectSound = "PaperSlide_Exit";
+        backButton.GetComponent<ButtonSoundController>().clickSound = "PaperSlide_Enter";
+
+        this.gameObject.SetActive (false);
 
 		menuActive = false;
         isFlippingMenu = false;
@@ -412,7 +419,7 @@ public class GameSettingsMenu : Menu
 			if (gameMenuObjs [i].gameObject.name == "OK_Button") 
 			{
 				Button tempButton = gameMenuObjs [i] as Button;
-				base.SelectSilently (tempButton);
+                base.SelectButtonInEventSystem(tempButton, true);
 				break;
 			}
 		}
@@ -445,9 +452,11 @@ public class GameSettingsMenu : Menu
         }
 
         //Select the settings menu button.
-        base.SelectSilently(GameObject.Find("Settings_Button").GetComponent<Button>());
+        yield return new WaitForEndOfFrame();
+        base.SelectButtonInEventSystem(GameObject.Find("Settings_Button").GetComponent<Button>(), true);
         //GameObject.Find ("Settings_Button").GetComponent<Button> ().Select();
 
+        yield return new WaitForEndOfFrame();
         this.gameObject.SetActive (false);
 	}
 
@@ -490,12 +499,12 @@ public class GameSettingsMenu : Menu
             mutatorButton.GetComponent<Selectable>().interactable = false;
 
             //Select the back button.
-            for (int i = 0; i < gameMenuObjs.Count; i++)
+            for (int i = 0; i < mutatorObjs.Count; i++)
             {
-                if (gameMenuObjs[i].gameObject.name == "Back_Button")
+                if (mutatorObjs[i].gameObject.name == "Back_Button")
                 {
-                    Button tempButton = gameMenuObjs[i] as Button;
-                    base.SelectSilently(tempButton);
+                    Button tempButton = mutatorObjs[i].GetComponent<Button>();
+                    base.SelectButtonInEventSystem(tempButton, true);
                     break;
                 }
             }
@@ -509,12 +518,12 @@ public class GameSettingsMenu : Menu
             mutatorButton.GetComponent<Selectable>().interactable = true;
 
             //Select the mutators button.
-            for (int i = 0; i < gameMenuObjs.Count; i++)
+            for (int i = 0; i < normalObjs.Count; i++)
             {
-                if (gameMenuObjs[i].gameObject.name == "Mutator_Button")
+                if (normalObjs[i].gameObject.name == "Mutator_Button")
                 {
-                    Button tempButton = gameMenuObjs[i] as Button;
-                    base.SelectSilently(tempButton);
+                    Button tempButton = normalObjs[i].GetComponent<Button>();
+                    base.SelectButtonInEventSystem(tempButton, true);
                     break;
                 }
             }

@@ -169,7 +169,9 @@ public class Player : PausableObject
                     if (GameManager.instance.Settings.UseSoulboundCarts)
                         attractingCart = false;
 
-					RemoveCart ((Vector3)velocity + (transform.right * 20f));
+                    Vector3 throwVector = Vector3.ClampMagnitude((Vector3)velocity, maxVelocity) + (transform.right * 20f);
+                    //Maybe ensure that this is only ever forward? Use dot procuct and mirror if it isnt.
+					RemoveCart (throwVector);
 				}
 				else
 				{
